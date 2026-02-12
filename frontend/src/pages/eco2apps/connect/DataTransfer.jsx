@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link2, Copy, Check, LogOut, XCircle, MessageSquare, Files } from "lucide-react";
-import ConnectionStatus from "../components/ConnectionStatus";
-import TextTransferSection from "../components/TextTransferSection";
-import FileTransferSection from "../components/FileTransferSection";
-import { useWebSocket } from "../hooks/useWebSocket";
-import { useAuth } from "../context/AuthContext";
-import { useView } from "../context/ViewContext";
-import ProTransferExperience from "../components/ProTransferExperience";
+import ConnectionStatus from "../../../components/connect/ConnectionStatus";
+import TextTransferSection from "../../../components/connect/TextTransferSection";
+import FileTransferSection from "../../../components/connect/FileTransferSection";
+import { useWebSocket } from "../../../hooks/useWebSocket";
+import { useAuth } from "../../../context/AuthContext";
+import { useView } from "../../../context/ViewContext";
+import ProTransferExperience from "../../../components/connect/ProTransferExperience";
 import "./DataTransfer.css";
 
 export default function DataTransfer() {

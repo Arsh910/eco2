@@ -11,6 +11,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+    const [loading, setLoading] = useState(true);
+
     const [authState, setAuthState] = useState({
         isAuthenticated: false,
         mode: null, // 'login' or 'guest'
@@ -51,6 +53,8 @@ export const AuthProvider = ({ children }) => {
                     guestName: null,
                     user: null
                 });
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -63,11 +67,16 @@ export const AuthProvider = ({ children }) => {
                 // Verify token if logged in
                 if (parsed.token && parsed.mode === 'login') {
                     verifyToken(parsed.token);
+                } else {
+                    setLoading(false);
                 }
             } catch (error) {
                 console.error('Failed to parse saved auth state:', error);
                 localStorage.removeItem('eco2_auth');
+                setLoading(false);
             }
+        } else {
+            setLoading(false);
         }
     }, []);
 
@@ -115,6 +124,7 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         ...authState,
+        loading,
         login,
         guestMode,
         logout

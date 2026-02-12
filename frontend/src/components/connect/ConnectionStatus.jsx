@@ -1,5 +1,5 @@
 import { Wifi, WifiOff } from "lucide-react";
-import "../pages/DataTransfer.css";
+import "../../pages/eco2apps/connect/DataTransfer.css";
 
 export default function ConnectionStatus({ status = "disconnected", peerCount = 0 }) {
     const statusConfig = {
