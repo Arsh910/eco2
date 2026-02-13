@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Send, Loader2 } from "lucide-react";
-import "../pages/DataTransfer.css";
+import "../../pages/eco2apps/connect/DataTransfer.css";
 
 export default function TextTransferSection({ messages = [], sendText }) {
     const [message, setMessage] = useState("");

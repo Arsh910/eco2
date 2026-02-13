@@ -1,33 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export default function BootSequence({ onComplete }) {
+export default function BootSequence({ onComplete, type = 'boot' }) {
     const [isFadingOut, setIsFadingOut] = useState(false);
     const videoRef = useRef(null);
 
     const handleVideoEnd = () => {
-        // Start the fade out animation
+        if (type === 'loading') return;
         setIsFadingOut(true);
     };
 
     const handleTransitionEnd = () => {
-        // Once fade out is done, notify parent to unmount
-        if (isFadingOut) {
+        if (isFadingOut && onComplete) {
             onComplete();
         }
     };
 
-    // Fallback: If video fails to autoplay or errors, complete immediately
     useEffect(() => {
         const video = videoRef.current;
         if (video) {
             video.play().catch(err => {
                 console.warn("Boot video autoplay blocked:", err);
-                // If blocked, maybe show a "Click to Start" button? 
-                // For now, let's just skip to the app to avoid blocking the user.
-                handleVideoEnd();
+                if (type === 'boot') {
+                    handleVideoEnd();
+                }
             });
         }
-    }, []);
+    }, [type]);
 
     return (
         <div
@@ -41,6 +39,7 @@ export default function BootSequence({ onComplete }) {
                 autoPlay
                 muted
                 playsInline
+                loop={type === 'loading'}
                 onEnded={handleVideoEnd}
             />
         </div>

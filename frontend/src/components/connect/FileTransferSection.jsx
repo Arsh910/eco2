@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Pause, Play, XCircle, Upload } from "lucide-react";
-import DropZone from "../components/DropZone";
-import TransferCard from "../components/TransferCard";
-import { FileSender } from "../utils/fileTransfer/FileSender.js";
-import { FileReceiver } from "../utils/fileTransfer/FileReceiver.js";
-import { generateUUID, generateFileId, formatBytes, formatSpeed, formatDuration, calculateETA, downloadFromOPFS } from "../utils/fileTransfer/helpers.js";
-import { TransferState } from "../utils/fileTransfer/constants.js";
-import "../pages/DataTransfer.css";
+import { FileSender } from "../../utils/fileTransfer/FileSender.js";
+import { FileReceiver } from "../../utils/fileTransfer/FileReceiver.js";
+import { generateFileId, formatBytes, formatSpeed, formatDuration, calculateETA, downloadFromOPFS } from "../../utils/fileTransfer/helpers.js";
+import { TransferState } from "../../utils/fileTransfer/constants.js";
+import "../../pages/eco2apps/connect/DataTransfer.css";
 
 export default function FileTransferSection({ wsRef, setFileTransferCallbacks }) {
     const [selectedFiles, setSelectedFiles] = useState([]);

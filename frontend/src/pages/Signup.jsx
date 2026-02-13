@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, UserPlus, AtSign } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import "../pages/DataTransfer.css";
+import "./eco2apps/connect/DataTransfer.css";
 
 export default function Signup() {
     const navigate = useNavigate();
