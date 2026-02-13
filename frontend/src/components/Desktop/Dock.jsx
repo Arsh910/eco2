@@ -54,7 +54,7 @@ const Dock = ({ currentApp, onLaunchApp }) => {
     if (isMobile) {
         // Mobile Layout: Fixed bottom bar like StatusBar
         return (
-            <div className="fixed bottom-0 left-0 right-0 h-16 bg-black/20 backdrop-blur-xl border-t border-white/10 flex items-center justify-around px-6 z-50 safe-area-bottom">
+            <div className="fixed bottom-0 left-0 right-0 h-16 bg-[#0B1120]/80 backdrop-blur-2xl border-t border-white/5 flex items-center justify-around px-6 z-50 safe-area-bottom">
                 {apps.map((app) => (
                     <DockItem
                         key={app.id}
@@ -71,7 +71,7 @@ const Dock = ({ currentApp, onLaunchApp }) => {
 
     // Desktop Layout: Floating Dock
     return (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 px-6 py-4 bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl flex items-end space-x-4 z-50">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 px-6 py-4 bg-[#0B1120]/40 backdrop-blur-2xl border border-white/5 rounded-2xl flex items-end space-x-4 z-50 shadow-2xl ring-1 ring-white/5">
             {apps.map((app) => (
                 <DockItem
                     key={app.id}

@@ -31,11 +31,39 @@ export const ViewProvider = ({ children }) => {
 
     const [activeTransferTab, setActiveTransferTab] = useState('text'); // 'text' | 'file'
 
+    // Background Settings
+    const [backgroundSettings, setBackgroundSettings] = useState({
+        type: 'model', // 'model' | 'image'
+        value: 'globe', // 'globe' | 'net' | 'dots' | 'url'
+        color: '#3b82f6' // Default Indigo-500
+    });
+
+    useEffect(() => {
+        const savedBg = localStorage.getItem('eco2_background_settings');
+        if (savedBg) {
+            try {
+                setBackgroundSettings(JSON.parse(savedBg));
+            } catch (e) {
+                console.error("Failed to parse background settings", e);
+            }
+        }
+    }, []);
+
+    const updateBackgroundSettings = (newSettings) => {
+        setBackgroundSettings(prev => {
+            const updated = { ...prev, ...newSettings };
+            localStorage.setItem('eco2_background_settings', JSON.stringify(updated));
+            return updated;
+        });
+    };
+
     const value = {
         isProMode,
         toggleView,
         activeTransferTab,
-        setActiveTransferTab
+        setActiveTransferTab,
+        backgroundSettings,
+        updateBackgroundSettings
     };
 
     return (

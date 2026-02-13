@@ -62,10 +62,6 @@ export default function Login() {
             <div className="w-full max-w-md">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-                        style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
-                        <UserIcon className="w-8 h-8 text-white" />
-                    </div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
                         Welcome Back
                     </h1>

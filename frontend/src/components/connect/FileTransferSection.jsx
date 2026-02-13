@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Pause, Play, XCircle, Upload } from "lucide-react";
 import { FileSender } from "../../utils/fileTransfer/FileSender.js";
 import { FileReceiver } from "../../utils/fileTransfer/FileReceiver.js";
-import { generateFileId, formatBytes, formatSpeed, formatDuration, calculateETA } from "../../utils/fileTransfer/helpers.js";
+import { generateFileId, formatBytes, formatSpeed, formatDuration, calculateETA, downloadFromOPFS } from "../../utils/fileTransfer/helpers.js";
 import { TransferState } from "../../utils/fileTransfer/constants.js";
 import "../../pages/eco2apps/connect/DataTransfer.css";
 

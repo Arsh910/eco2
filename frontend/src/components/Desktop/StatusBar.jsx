@@ -39,7 +39,7 @@ const StatusBar = ({ currentApp }) => {
     };
 
     return (
-        <div className="fixed top-0 left-0 right-0 h-8 bg-black/20 backdrop-blur-md text-white flex items-center justify-between px-4 z-50 text-xs font-medium select-none">
+        <div className="fixed top-0 left-0 right-0 h-8 bg-[#0B1120]/30 backdrop-blur-md border-b border-white/5 text-white flex items-center justify-between px-4 z-50 text-xs font-medium select-none">
             <div className="flex items-center space-x-4">
                 <span className="font-bold text-sm">Eco2</span>
                 {currentApp && (

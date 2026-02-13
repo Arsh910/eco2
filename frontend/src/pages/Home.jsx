@@ -1,42 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import GLOBE from 'vanta/src/vanta.globe';
+import React, { useState } from 'react';
 import StatusBar from '../components/Desktop/StatusBar';
 import Dock from '../components/Desktop/Dock';
 import WindowArea from '../components/Desktop/WindowArea';
 import ContextMenu from '../components/Desktop/ContextMenu';
+import DesktopBackground from '../components/Desktop/DesktopBackground.jsx';
 
 const Home = () => {
-    const [vantaEffect, setVantaEffect] = useState(null);
-    const vantaRef = useRef(null);
-
     const [currentApp, setCurrentApp] = useState(null);
     const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0 });
-
-    useEffect(() => {
-        if (!vantaEffect && vantaRef.current) {
-            try {
-                setVantaEffect(
-                    GLOBE({
-                        el: vantaRef.current,
-                        mouseControls: true,
-                        touchControls: true,
-                        gyroControls: false,
-                        minHeight: 200.00,
-                        minWidth: 200.00,
-                        scale: 1.00,
-                        scaleMobile: 1.00,
-                        color: 0x3b82f6,
-                        backgroundColor: 0x0f172a
-                    })
-                );
-            } catch (error) {
-                console.error("Failed to initialize Vanta effect:", error);
-            }
-        }
-        return () => {
-            if (vantaEffect) vantaEffect.destroy();
-        };
-    }, [vantaEffect]);
 
     const handleContextMenu = (e) => {
         e.preventDefault();
@@ -59,34 +30,48 @@ const Home = () => {
         setCurrentApp(null);
     };
 
+    const handleContextMenuAction = (action) => {
+        if (action === 'display') {
+            handleLaunchApp('settings');
+        }
+        // Add other actions here
+        console.log('Action:', action);
+    };
+
     return (
         <div
             className="h-screen w-screen overflow-hidden relative font-sans text-slate-100 select-none"
             onContextMenu={handleContextMenu}
             onClick={handleCloseContextMenu}
         >
-            {/* Vanta Background */}
-            <div ref={vantaRef} className="absolute inset-0 z-0"></div>
+            {/* Modular Desktop Background */}
+            <DesktopBackground />
 
             {/* Desktop UI */}
-            <div className="relative z-10 h-full flex flex-col">
-                <StatusBar currentApp={currentApp} />
+            <div className="relative z-10 h-full flex flex-col pointer-events-none">
+                <div className="pointer-events-auto">
+                    <StatusBar currentApp={currentApp} />
+                </div>
 
-                <div className="flex-grow relative">
+                <div className="flex-grow relative pointer-events-auto">
                     {/* Window Area */}
                     <WindowArea app={currentApp} onClose={handleCloseApp} />
                 </div>
 
-                <Dock currentApp={currentApp} onLaunchApp={handleLaunchApp} />
+                <div className="pointer-events-auto">
+                    <Dock currentApp={currentApp} onLaunchApp={handleLaunchApp} />
+                </div>
             </div>
 
             {/* Context Menu */}
-            <ContextMenu
-                isOpen={contextMenu.isOpen}
-                position={{ x: contextMenu.x, y: contextMenu.y }}
-                onClose={handleCloseContextMenu}
-                onAction={(action) => console.log('Action:', action)}
-            />
+            <div className="pointer-events-auto relative z-50">
+                <ContextMenu
+                    isOpen={contextMenu.isOpen}
+                    position={{ x: contextMenu.x, y: contextMenu.y }}
+                    onClose={handleCloseContextMenu}
+                    onAction={handleContextMenuAction}
+                />
+            </div>
         </div>
     );
 };

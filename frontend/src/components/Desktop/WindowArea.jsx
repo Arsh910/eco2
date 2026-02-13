@@ -54,7 +54,7 @@ const WindowArea = ({ app, onClose }) => {
                     left: isMobile ? 0 : undefined,
                     touchAction: 'none'
                 }}
-                className="bg-slate-900/90 backdrop-blur-xl border border-white/10 sm:rounded-xl shadow-2xl flex flex-col overflow-hidden"
+                className="bg-[#0B1120]/95 backdrop-blur-2xl border border-white/10 sm:rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/5"
             >
                 {/* Window Title Bar */}
                 <div className="window-title-bar h-12 bg-white/5 border-b border-white/5 flex items-center justify-between px-2 select-none cursor-grab active:cursor-grabbing touch-none">
