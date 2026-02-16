@@ -67,10 +67,10 @@ export default function DataTransfer() {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                        <h1 className="text-2xl font-bold text-[var(--text-primary)]">
                             Data Transfer
                         </h1>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <p className="text-sm text-[var(--text-secondary)]">
                             Share text and files instantly
                         </p>
                     </div>

@@ -1,11 +1,9 @@
 import React from 'react';
 import { Monitor, Image as ImageIcon, Box, Check, Moon, Sun } from 'lucide-react';
 import { useView } from '../../../../context/ViewContext';
-import useTheme from '../../../../context/themeContext';
 
 const DisplaySettings = ({ isGuest }) => {
-    const { backgroundSettings, updateBackgroundSettings, saveBackgroundSettings, isLoadingSettings } = useView();
-    const { thememode, changeMode } = useTheme();
+    const { backgroundSettings, updateBackgroundSettings, saveBackgroundSettings, isLoadingSettings, theme, toggleTheme } = useView();
     const [isSaving, setIsSaving] = React.useState(false);
     const [isSaved, setIsSaved] = React.useState(false);
 
@@ -38,14 +36,8 @@ const DisplaySettings = ({ isGuest }) => {
         }
     };
 
-    const handleThemeChange = (mode) => {
-        if (thememode !== mode) {
-            changeMode();
-        }
-    }
-
     return (
-        <div className="bg-slate-900/50 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-lg">
+        <div className="bg-slate-900/50 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-lg transition-colors duration-300">
             <h2 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-6">
                 Display Settings
             </h2>
@@ -58,15 +50,15 @@ const DisplaySettings = ({ isGuest }) => {
                 </h3>
                 <div className="bg-slate-800/50 p-1 rounded-xl border border-white/5 flex">
                     <button
-                        onClick={() => handleThemeChange('light')}
-                        className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${thememode === 'light' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                        onClick={toggleTheme}
+                        className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${theme === 'light' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                         <Sun className="w-4 h-4" />
                         <span>Light</span>
                     </button>
                     <button
-                        onClick={() => handleThemeChange('dark')}
-                        className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${thememode === 'dark' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                        onClick={toggleTheme}
+                        className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${theme === 'dark' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                         <Moon className="w-4 h-4" />
                         <span>Dark</span>

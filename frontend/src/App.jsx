@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import Router from './router'
-import { Themeprovider } from './context/themeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ViewProvider } from './context/ViewContext'
 import BootSequence from './components/BootSequence'
@@ -25,35 +24,6 @@ const BootTrigger = ({ setHasBooted }) => {
 };
 
 function App() {
-  const [thememode, changemode] = useState('light');
-
-  const changeMode = () => {
-    if (thememode == 'light') {
-      changemode('dark');
-    }
-    else {
-      changemode('light');
-    }
-  }
-
-  // saved theme
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('eco2-theme');
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      changemode(savedTheme);
-    }
-  }, []);
-
-  // change theme
-  useEffect(() => {
-    let cl = document.querySelector('html').classList;
-    cl.remove('light', 'dark');
-    cl.add(thememode);
-
-    localStorage.setItem('eco2-theme', thememode);
-  }, [thememode])
-
-
   const [hasBooted, setHasBooted] = useState(false);
 
   return (
@@ -65,10 +35,8 @@ function App() {
       <AuthProvider>
         <BootTrigger setHasBooted={setHasBooted} />
         <ViewProvider>
-          <Themeprovider value={{ thememode, changeMode }}>
-            <ToastContainer autoClose={2000} />
-            <Router />
-          </Themeprovider>
+          <ToastContainer autoClose={2000} />
+          <Router />
         </ViewProvider>
       </AuthProvider>
     </>
