@@ -7,7 +7,7 @@ import GLOBE from 'vanta/src/vanta.globe';
 import { useView } from '../../context/ViewContext';
 
 const DesktopBackground = () => {
-    const { backgroundSettings } = useView();
+    const { backgroundSettings, theme } = useView();
     const [vantaEffect, setVantaEffect] = useState(null);
     const containerRef = useRef(null);
 
@@ -41,6 +41,13 @@ const DesktopBackground = () => {
                     : 'globe';
 
                 if (modelValue === 'globe') {
+                    // Determine colors based on theme
+                    const isDark = theme === 'dark';
+                    const bgColor = isDark ? 0x020617 : 0xF5F5DC; // Slate-950 vs Beige
+                    const globeColor = isDark
+                        ? parseInt(backgroundSettings.color.replace('#', '0x'))
+                        : 0x78A02E; // Olive Green for Light Mode
+
                     effect = GLOBE({
                         el: containerRef.current,
                         THREE: THREE,
@@ -51,8 +58,9 @@ const DesktopBackground = () => {
                         minWidth: 200.00,
                         scale: 1.00,
                         scaleMobile: 1.00,
-                        color: parseInt(backgroundSettings.color.replace('#', '0x')),
-                        backgroundColor: 0x020617 // Slate-950 (Deep Space)
+                        color: globeColor,
+                        color2: isDark ? 0xffffff : 0x3f6212, // White for Dark Mode, Dark Olive for Light Mode
+                        backgroundColor: bgColor
                     });
                 }
 
@@ -65,7 +73,7 @@ const DesktopBackground = () => {
         initVanta();
 
         return cleanup;
-    }, [backgroundSettings.type, backgroundSettings.value, backgroundSettings.color]);
+    }, [backgroundSettings.type, backgroundSettings.value, backgroundSettings.color, theme]);
 
     // Render Logic
     if (backgroundSettings.type === 'image') {

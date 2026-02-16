@@ -54,10 +54,10 @@ const WindowArea = ({ app, onClose }) => {
                     left: isMobile ? 0 : undefined,
                     touchAction: 'none'
                 }}
-                className="bg-[#0B1120]/95 backdrop-blur-2xl border border-white/10 sm:rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/5"
+                className="bg-[var(--bg-window)] backdrop-blur-2xl border border-[var(--border-subtle)] sm:rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-[var(--border-highlight)] transition-colors duration-300"
             >
                 {/* Window Title Bar */}
-                <div className="window-title-bar h-12 bg-white/5 border-b border-white/5 flex items-center justify-between px-2 select-none cursor-grab active:cursor-grabbing touch-none">
+                <div className="window-title-bar h-12 bg-white/5 border-b border-[var(--border-subtle)] flex items-center justify-between px-2 select-none cursor-grab active:cursor-grabbing touch-none transition-colors duration-300">
                     <div className="flex items-center">
                         {/* Close Button - 44px touch target */}
                         <div
@@ -68,16 +68,16 @@ const WindowArea = ({ app, onClose }) => {
                         </div>
 
                         {/* Minimize Button - 44px touch target */}
-                        <div className="w-11 h-11 flex items-center justify-center cursor-pointer group touch-manipulation">
+                        {/* <div className="w-11 h-11 flex items-center justify-center cursor-pointer group touch-manipulation">
                             <span className="w-3 h-3 rounded-full bg-yellow-500 group-hover:bg-yellow-600 transition-colors"></span>
-                        </div>
+                        </div> */}
 
                         {/* Maximize Button - 44px touch target */}
-                        <div className="w-11 h-11 flex items-center justify-center cursor-pointer group touch-manipulation">
+                        {/* <div className="w-11 h-11 flex items-center justify-center cursor-pointer group touch-manipulation">
                             <span className="w-3 h-3 rounded-full bg-green-500 group-hover:bg-green-600 transition-colors"></span>
-                        </div>
+                        </div> */}
                     </div>
-                    <span className="text-sm font-medium text-slate-300 capitalize pointer-events-none">{app}</span>
+                    <span className="text-sm font-medium text-[var(--text-secondary)] capitalize pointer-events-none transition-colors duration-300">{app}</span>
                     <div className="w-14"></div>
                 </div>
 

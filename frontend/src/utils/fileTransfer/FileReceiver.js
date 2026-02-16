@@ -51,6 +51,9 @@ export class FileReceiver {
         this.onComplete = null;
         this.onError = null;
         this.onStateChange = null;
+
+        // Buffering for race conditions (small files)
+        this.chunkBuffer = [];
     }
 
     /**
@@ -107,6 +110,9 @@ export class FileReceiver {
 
         this.startTime = Date.now();
         this.setState(TransferState.TRANSFERRING);
+
+        // Process any chunks that arrived while initializing
+        await this.flushBuffer();
     }
 
     /**
@@ -191,6 +197,13 @@ export class FileReceiver {
      * Handle incoming binary chunk
      */
     async handleBinaryChunk(arrayBuffer) {
+        // Race condition protection: If writer isn't ready, buffer the chunk
+        if (!this.writer) {
+            console.log('[FileReceiver] Writer not ready, buffering chunk');
+            this.chunkBuffer.push(arrayBuffer);
+            return;
+        }
+
         try {
             // Decode chunk
             const { checkpointIndex, chunkIndex, data } = decodeBinaryChunk(arrayBuffer);
@@ -251,6 +264,21 @@ export class FileReceiver {
                     message: 'Failed to write chunk',
                     error
                 });
+            }
+        }
+    }
+
+    /**
+     * Flush buffered chunks once writer is ready
+     */
+    async flushBuffer() {
+        if (this.chunkBuffer.length > 0) {
+            console.log(`[FileReceiver] Flushing ${this.chunkBuffer.length} buffered chunks`);
+            const buffer = [...this.chunkBuffer];
+            this.chunkBuffer = []; // Clear first to prevent loops if we recursively call (though we shouldn't)
+
+            for (const chunk of buffer) {
+                await this.handleBinaryChunk(chunk);
             }
         }
     }

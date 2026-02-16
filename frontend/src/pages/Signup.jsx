@@ -140,42 +140,40 @@ export default function Signup() {
 
     return (
         <div className="min-h-screen flex items-center justify-center px-4 py-8
-                    bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 
-                    dark:from-slate-900 dark:via-purple-950 dark:to-slate-900 
+                    bg-[var(--bg-desktop)] 
                     transition-colors duration-300">
             <div className="w-full max-w-md">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-                        style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] shadow-lg shadow-[var(--accent-primary)]/20">
                         <UserPlus className="w-8 h-8 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                    <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
                         Create Account
                     </h1>
-                    <p className="text-slate-600 dark:text-slate-400">
+                    <p className="text-[var(--text-secondary)]">
                         Start sharing data in seconds
                     </p>
                 </div>
 
                 {/* Signup Form */}
-                <div className="glass-card rounded-2xl p-8">
+                <div className="glass-card rounded-2xl p-8 bg-[var(--bg-window)] border border-[var(--border-subtle)] shadow-xl">
                     {/* General Error Message */}
                     {errors.general && (
-                        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                            <p className="text-sm text-red-600 dark:text-red-400">{errors.general}</p>
+                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                            <p className="text-sm text-red-500">{errors.general}</p>
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Username Field */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                                 Username
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <AtSign className="w-5 h-5 text-slate-400" />
+                                    <AtSign className="w-5 h-5 text-[var(--text-secondary)]/70" />
                                 </div>
                                 <input
                                     type="text"
@@ -184,26 +182,26 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="johndoe123"
-                                    className={`w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 
-                           border ${errors.username ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-lg
-                           text-slate-900 dark:text-slate-100 placeholder-slate-400
-                           focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400
+                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                           border ${errors.username ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
+                           text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
+                           focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
                            transition-all duration-200`}
                                 />
                             </div>
                             {errors.username && (
-                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.username}</p>
+                                <p className="mt-1 text-sm text-red-500">{errors.username}</p>
                             )}
                         </div>
 
                         {/* Name Field */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                                 Full Name
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <User className="w-5 h-5 text-slate-400" />
+                                    <User className="w-5 h-5 text-[var(--text-secondary)]/70" />
                                 </div>
                                 <input
                                     type="text"
@@ -212,26 +210,26 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="John Doe"
-                                    className={`w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 
-                           border ${errors.name ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-lg
-                           text-slate-900 dark:text-slate-100 placeholder-slate-400
-                           focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400
+                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                           border ${errors.name ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
+                           text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
+                           focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
                            transition-all duration-200`}
                                 />
                             </div>
                             {errors.name && (
-                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>
+                                <p className="mt-1 text-sm text-red-500">{errors.name}</p>
                             )}
                         </div>
 
                         {/* Email Field */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                                 Email Address
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Mail className="w-5 h-5 text-slate-400" />
+                                    <Mail className="w-5 h-5 text-[var(--text-secondary)]/70" />
                                 </div>
                                 <input
                                     type="email"
@@ -240,26 +238,26 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="you@example.com"
-                                    className={`w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 
-                           border ${errors.email ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-lg
-                           text-slate-900 dark:text-slate-100 placeholder-slate-400
-                           focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400
+                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                           border ${errors.email ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
+                           text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
+                           focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
                            transition-all duration-200`}
                                 />
                             </div>
                             {errors.email && (
-                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
+                                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
                             )}
                         </div>
 
                         {/* Password Field */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                                 Password
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="w-5 h-5 text-slate-400" />
+                                    <Lock className="w-5 h-5 text-[var(--text-secondary)]/70" />
                                 </div>
                                 <input
                                     type="password"
@@ -268,26 +266,26 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="••••••••"
-                                    className={`w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 
-                           border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-lg
-                           text-slate-900 dark:text-slate-100 placeholder-slate-400
-                           focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400
+                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                           border ${errors.password ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
+                           text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
+                           focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
                            transition-all duration-200`}
                                 />
                             </div>
                             {errors.password && (
-                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.password}</p>
+                                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
                             )}
                         </div>
 
                         {/* Confirm Password Field */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                                 Confirm Password
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="w-5 h-5 text-slate-400" />
+                                    <Lock className="w-5 h-5 text-[var(--text-secondary)]/70" />
                                 </div>
                                 <input
                                     type="password"
@@ -296,15 +294,15 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="••••••••"
-                                    className={`w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 
-                           border ${errors.confirmPassword ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-lg
-                           text-slate-900 dark:text-slate-100 placeholder-slate-400
-                           focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400
+                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                           border ${errors.confirmPassword ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
+                           text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
+                           focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
                            transition-all duration-200`}
                                 />
                             </div>
                             {errors.confirmPassword && (
-                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
+                                <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>
                             )}
                         </div>
 
@@ -312,7 +310,7 @@ export default function Signup() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full btn-primary flex items-center justify-center gap-2 py-3 mt-6"
+                            className="w-full btn-primary flex items-center justify-center gap-2 py-3 mt-6 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white font-medium rounded-lg transition-colors border-none shadow-lg shadow-[var(--accent-primary)]/20"
                         >
                             {loading ? (
                                 <>
@@ -331,10 +329,10 @@ export default function Signup() {
                     {/* Divider */}
                     <div className="relative my-6">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+                            <div className="w-full border-t border-[var(--border-subtle)]"></div>
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                            <span className="px-2 bg-[var(--bg-window)] text-[var(--text-secondary)]">
                                 Or continue with
                             </span>
                         </div>
@@ -346,12 +344,12 @@ export default function Signup() {
                             type="button"
                             onClick={() => googleLogin()}
                             disabled={googleLoading}
-                            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-200"
+                            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-glass)] hover:bg-[var(--text-secondary)]/10 transition-colors duration-200"
                         >
                             {googleLoading ? (
                                 <>
-                                    <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                                    <span className="text-slate-600 dark:text-slate-300 font-medium">Signing in...</span>
+                                    <div className="w-5 h-5 border-2 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-[var(--text-secondary)] font-medium">Signing in...</span>
                                 </>
                             ) : (
                                 <>
@@ -373,7 +371,7 @@ export default function Signup() {
                                             fill="#EA4335"
                                         />
                                     </svg>
-                                    <span className="text-slate-700 dark:text-slate-200 font-medium">Continue with Google</span>
+                                    <span className="text-[var(--text-primary)] font-medium">Continue with Google</span>
                                 </>
                             )}
                         </button>
@@ -384,7 +382,7 @@ export default function Signup() {
                     <button
                         type="button"
                         onClick={handleGuestMode}
-                        className="w-full btn-secondary py-3 flex items-center justify-center gap-2"
+                        className="w-full py-3 flex items-center justify-center gap-2 border border-[var(--border-subtle)] rounded-lg text-[var(--text-secondary)] hover:bg-[var(--text-secondary)]/10 transition-colors"
                     >
                         <User className="w-5 h-5" />
                         Continue as Guest
@@ -392,9 +390,9 @@ export default function Signup() {
                 </div>
 
                 {/* Login Link */}
-                <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+                <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
                     Already have an account?{" "}
-                    <Link to="/login" className="text-purple-600 dark:text-purple-400 font-medium hover:underline">
+                    <Link to="/login" className="text-[var(--accent-primary)] font-medium hover:underline">
                         Sign in
                     </Link>
                 </p>

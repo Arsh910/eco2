@@ -32,20 +32,20 @@
 }
 
 /* Glassmorphism base - Startup Professional */
+/* Glassmorphism base - Startup Professional */
 .glass-card {
-    background: rgba(15, 23, 42, 0.6);
-    /* Slate-900 with 60% opacity */
+    background: var(--bg-glass);
+    /* Light/Dark variable */
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-subtle);
     box-shadow: var(--shadow-card);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark .glass-card {
-    background: rgba(2, 6, 23, 0.7);
-    /* Slate-950 with 70% opacity */
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Rely on var(--bg-glass) defined in index.css for correct mode */
+    border-color: var(--border-subtle);
 }
 
 .glass-card:hover {

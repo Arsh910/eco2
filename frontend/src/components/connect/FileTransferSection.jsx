@@ -434,10 +434,10 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
             {/* Header with File Selection Button */}
             <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">
+                    <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
                         File Transfer
                     </h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <p className="text-sm text-[var(--text-secondary)]">
                         Supports 100GB+ files
                     </p>
                 </div>
@@ -466,7 +466,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
             {selectedFiles.length > 0 && (
                 <div className="mb-4">
                     <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                             Selected Files ({selectedFiles.length})
                         </h3>
                         <button

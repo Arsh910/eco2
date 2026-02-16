@@ -15,13 +15,20 @@ export const useView = () => {
 export const ViewProvider = ({ children }) => {
     const { isAuthenticated, token } = useAuth();
     const [isProMode, setIsProMode] = useState(false);
+    const [theme, setTheme] = useState('dark');
 
-    // Load view preference state from localStorage on mount (keep this for pro mode as it depends on device optionally)
-    // or we could move this to DB too, but request only mentioned background settings.
+    // Load view preference state from localStorage on mount
     useEffect(() => {
         const savedView = localStorage.getItem('eco2_view_preference');
         if (savedView) {
             setIsProMode(JSON.parse(savedView));
+        }
+        const savedTheme = localStorage.getItem('eco2_theme_preference');
+        if (savedTheme) {
+            setTheme(savedTheme);
+            document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+        } else {
+            document.documentElement.classList.add('dark');
         }
     }, []);
 
@@ -30,6 +37,15 @@ export const ViewProvider = ({ children }) => {
             const newState = !prev;
             localStorage.setItem('eco2_view_preference', JSON.stringify(newState));
             return newState;
+        });
+    };
+
+    const toggleTheme = () => {
+        setTheme(prev => {
+            const newTheme = prev === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('eco2_theme_preference', newTheme);
+            document.documentElement.classList.toggle('dark', newTheme === 'dark');
+            return newTheme;
         });
     };
 
@@ -88,6 +104,8 @@ export const ViewProvider = ({ children }) => {
     const value = {
         isProMode,
         toggleView,
+        theme,
+        toggleTheme,
         activeTransferTab,
         setActiveTransferTab,
         backgroundSettings,

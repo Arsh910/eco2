@@ -9,20 +9,77 @@
     line-height: 1.5;
     font-weight: 400;
 
-    color-scheme: dark;
-    /* Default to dark mode for the OS feel */
-    color: rgba(255, 255, 255, 0.9);
-    background-color: #020617;
-    /* Slate-950 */
+    color-scheme: light;
+
+    /* LIGHT MODE (Eco Palette) */
+    /* Backgrounds */
+    --bg-desktop: #F5F5DC;
+    /* Beige / Off-White */
+    --bg-window: rgba(255, 255, 255, 0.85);
+    --bg-dock: rgba(255, 255, 255, 0.7);
+    --bg-glass: rgba(255, 255, 255, 0.6);
+
+    /* Text */
+    --text-primary: #1a1a1a;
+    /* Dark Charcoal */
+    --text-secondary: #4b5563;
+    /* Gray-600 */
+    --text-accent: #78A02E;
+    /* Olive Green */
+
+    /* Borders */
+    --border-subtle: rgba(120, 160, 46, 0.2);
+    /* Olive low opacity */
+    --border-highlight: rgba(120, 160, 46, 0.4);
+
+    /* Accents */
+    --accent-primary: #78A02E;
+    /* Olive Green */
+    --accent-secondary: #F29F05;
+    /* Warm Orange */
+    --accent-glow: rgba(120, 160, 46, 0.5);
+
+    /* Global Selection Color */
+    --selection-bg: #78A02E;
+    --selection-text: #ffffff;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+:root.dark {
+    color-scheme: dark;
+
+    /* DARK MODE (Deep Slate & Indigo) */
+    /* Backgrounds */
+    --bg-desktop: #020617;
+    /* Slate-950 */
+    --bg-window: rgba(11, 17, 32, 0.95);
+    --bg-dock: rgba(11, 17, 32, 0.6);
+    --bg-glass: rgba(15, 23, 42, 0.6);
+
+    /* Text */
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --text-secondary: #94a3b8;
+    /* Slate-400 */
+    --text-accent: #8b5cf6;
+    /* Violet-500 */
+
+    /* Borders */
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --border-highlight: rgba(255, 255, 255, 0.2);
+
+    /* Accents */
+    --accent-primary: #6366f1;
+    /* Indigo-500 */
+    --accent-secondary: #8b5cf6;
+    /* Violet-500 */
+    --accent-glow: rgba(99, 102, 241, 0.5);
 
     /* Global Selection Color */
     --selection-bg: #6366f1;
-    /* Indigo-500 */
     --selection-text: #ffffff;
 }
 
@@ -35,9 +92,11 @@ body {
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    background-color: #020617;
+    background-color: var(--bg-desktop);
+    color: var(--text-primary);
     overflow: hidden;
     /* Prevent body scroll, handle in apps */
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Custom Global Scrollbar */
