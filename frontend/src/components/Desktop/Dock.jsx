@@ -13,7 +13,7 @@ const DockItem = ({ icon: Icon, label, isOpen, onClick, isMobile }) => {
                 transition-all duration-300
                 ${isMobile && isOpen ? "bg-[var(--accent-primary)] text-white" : "text-[var(--text-secondary)]"}
                 ${!isMobile ? "bg-white/5 backdrop-blur-md border border-[var(--border-subtle)] shadow-lg group-hover:bg-[var(--accent-glow)] group-hover:scale-110 group-hover:text-white" : ""}
-                ${!isMobile && isOpen ? 'ring-2 ring-[var(--accent-primary)] bg-[var(--accent-glow)] text-white' : ''}
+                ${!isMobile && isOpen ? 'ring-2 ring-[var(--accent-primary)] bg-[var(--accent-glow)] text-[var(--accent-primary)]' : ''}
             `}>
                 <Icon className={`${isMobile ? "w-6 h-6" : "w-8 h-8"}`} />
             </div>
@@ -23,10 +23,10 @@ const DockItem = ({ icon: Icon, label, isOpen, onClick, isMobile }) => {
                 </span>
             )}
             {isOpen && !isMobile && (
-                <div className="absolute -bottom-2 w-1.5 h-1.5 bg-white rounded-full"></div>
+                <div className="absolute -bottom-2 w-1.5 h-1.5 bg-white border border-black rounded-full"></div>
             )}
             {isMobile && isOpen && (
-                <div className="w-1 h-1 bg-white rounded-full mt-1"></div>
+                <div className="w-1 h-1 bg-white border border-black rounded-full mt-1"></div>
             )}
         </div>
     );

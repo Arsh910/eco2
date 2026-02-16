@@ -111,19 +111,19 @@ export default function DataTransfer() {
                 )}
 
                 {/* Room Code Section */}
-                <div className="glass-card rounded-xl p-4">
+                <div className="glass-card rounded-xl p-4 border border-[var(--border-subtle)] bg-[var(--bg-window)] overflow-hidden">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">
+                            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
                                 Your Room Code
                             </label>
 
                             <div className="flex flex-col xl:flex-row gap-4 items-stretch">
                                 <div className="flex-1 w-full flex items-stretch gap-2">
-                                    <div className="flex-1 flex items-center gap-3 px-4 py-3 bg-purple-50 dark:bg-slate-800/50 
-                                                      border-2 border-purple-200 dark:border-slate-700 rounded-xl">
-                                        <Link2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                        <code className="text-xl font-bold tracking-wider text-purple-700 dark:text-purple-300">
+                                    <div className="flex-1 flex items-center gap-3 px-4 py-3 bg-[var(--bg-secondary)] 
+                                                      border-2 border-[var(--border-subtle)] rounded-xl">
+                                        <Link2 className="w-5 h-5 text-[var(--accent-primary)]" />
+                                        <code className="text-xl font-bold tracking-wider text-[var(--accent-primary)]">
                                             {roomCode || '---'}
                                         </code>
                                     </div>
@@ -131,7 +131,9 @@ export default function DataTransfer() {
                                     <div className="flex flex-row xl:flex-col gap-2">
                                         <button
                                             onClick={handleCopyCode}
-                                            className="btn-secondary px-4 py-3 flex-1 flex items-center justify-center gap-2 whitespace-nowrap text-sm h-auto"
+                                            className="px-4 py-3 flex-1 flex items-center justify-center gap-2 whitespace-nowrap text-sm h-auto
+                                                     bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg
+                                                     text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                                         >
                                             {codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                         </button>
@@ -152,7 +154,7 @@ export default function DataTransfer() {
 
                                 {/* QR Code Display - Side by side on XL, Stacked on Mobile */}
                                 {roomCode && (
-                                    <div className="w-full xl:w-auto p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-4">
+                                    <div className="w-full xl:w-auto p-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] flex items-center gap-4">
                                         <div className="bg-white p-2 rounded-lg border border-slate-100 relative min-w-[64px] min-h-[64px] flex items-center justify-center">
                                             {qrLoading && (
                                                 <div className="absolute inset-0 flex items-center justify-center">
@@ -167,10 +169,10 @@ export default function DataTransfer() {
                                             />
                                         </div>
                                         <div className="flex-1 xl:hidden 2xl:block">
-                                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                                            <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">
                                                 Scan to Join
                                             </p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                                                 Point camera to join.
                                             </p>
                                         </div>
@@ -181,7 +183,7 @@ export default function DataTransfer() {
 
                         {/* Join Room */}
                         <div className="flex flex-col h-full">
-                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">
+                            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
                                 Join a Room
                             </label>
                             <div className="flex-1 flex items-stretch gap-2">
@@ -192,11 +194,11 @@ export default function DataTransfer() {
                                     onKeyPress={(e) => e.key === 'Enter' && handleJoinRoom()}
                                     placeholder="ENTER CODE"
                                     maxLength={6}
-                                    className="flex-1 min-w-0 px-4 py-3 bg-white dark:bg-slate-900/50 h-auto
-                                                 border border-slate-200 dark:border-slate-700 rounded-xl
-                                                 text-slate-900 dark:text-slate-100 placeholder-slate-400
+                                    className="flex-1 min-w-0 px-4 py-3 bg-[var(--bg-secondary)] h-auto
+                                                 border border-[var(--border-subtle)] rounded-xl
+                                                 text-[var(--text-primary)] placeholder-[var(--text-tertiary)]
                                                  text-center text-lg font-mono tracking-wider uppercase
-                                                 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
+                                                 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                                 />
                                 <button
                                     onClick={() => joinCode.trim() ? handleJoinRoom() : handleCreateNewRoom()}

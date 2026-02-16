@@ -18,7 +18,7 @@ export default function Settings() {
     };
 
     return (
-        <div className="h-full flex flex-col p-6 space-y-6 select-none text-[var(--text-primary)] transition-colors duration-300">
+        <div className="h-full flex flex-col p-6 space-y-6 select-none text-[var(--text-primary)] transition-colors duration-300" style={{ "height": "fit-content" }}>
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">Settings</h1>
@@ -76,7 +76,7 @@ export default function Settings() {
             <DisplaySettings isGuest={isGuest} />
 
             {/* Preferences Section */}
-            <div className="bg-[var(--bg-window)] backdrop-blur-md rounded-2xl p-6 border border-[var(--border-subtle)] shadow-lg transition-colors duration-300">
+            <div className="mb-[5px] bg-[var(--bg-window)] backdrop-blur-md rounded-2xl p-6 border border-[var(--border-subtle)] shadow-lg transition-colors duration-300">
                 <h2 className="text-xs font-semibold text-[var(--accent-primary)] uppercase tracking-wider mb-6">Preferences</h2>
 
                 <div className="flex items-center justify-between">

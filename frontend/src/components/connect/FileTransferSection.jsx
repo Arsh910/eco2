@@ -536,8 +536,8 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3 min-h-0">
                     {transfers.length === 0 ? (
-                        <div className="glass-card rounded-xl p-8 text-center">
-                            <p className="text-slate-500 dark:text-slate-400">
+                        <div className="glass-card rounded-xl p-8 text-center border border-[var(--border-subtle)] bg-[var(--bg-window)]">
+                            <p className="text-[var(--text-secondary)]">
                                 No transfers yet. Select files to start sharing!
                             </p>
                         </div>
@@ -546,15 +546,15 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                             {transfers.map((transfer) => (
                                 <div
                                     key={transfer.id}
-                                    className="glass-card rounded-xl p-4"
+                                    className="glass-card rounded-xl p-4 border border-[var(--border-subtle)] bg-[var(--bg-window)]"
                                 >
                                     {/* Transfer Header */}
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-slate-900 dark:text-slate-100 truncate">
+                                            <p className="font-medium text-[var(--text-primary)] truncate">
                                                 {transfer.fileName}
                                             </p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            <p className="text-xs text-[var(--text-secondary)]">
                                                 {formatBytes(transfer.size)} • {transfer.direction === 'sent' ? 'Sending' : 'Receiving'}
                                             </p>
                                         </div>
@@ -565,13 +565,13 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                                 (transfer.state === TransferState.TRANSFERRING || transfer.state === TransferState.PAUSED) && (
                                                     <button
                                                         onClick={() => handlePauseResume(transfer.id)}
-                                                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                                        className="p-1.5 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors"
                                                         title={transfer.state === TransferState.TRANSFERRING ? 'Pause' : 'Resume'}
                                                     >
                                                         {transfer.state === TransferState.TRANSFERRING ? (
-                                                            <Pause className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                                                            <Pause className="w-4 h-4 text-[var(--text-secondary)]" />
                                                         ) : (
-                                                            <Play className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                                                            <Play className="w-4 h-4 text-[var(--text-secondary)]" />
                                                         )}
                                                     </button>
                                                 )}
@@ -605,9 +605,9 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                                 transfer.state === TransferState.CANCELLED) && (
                                                     <button
                                                         onClick={() => handleDeleteTransfer(transfer.id)}
-                                                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                                        className="p-1.5 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors"
                                                     >
-                                                        <X className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                                                        <X className="w-4 h-4 text-[var(--text-secondary)]" />
                                                     </button>
                                                 )}
                                         </div>
@@ -617,15 +617,15 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                     {transfer.state !== TransferState.COMPLETED &&
                                         transfer.state !== TransferState.CANCELLED && (
                                             <div className="mb-2">
-                                                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
+                                                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
                                                     <span>{transfer.progress.toFixed(1)}%</span>
                                                     <span>
                                                         Checkpoint {transfer.currentCheckpoint + 1} / {transfer.totalCheckpoints}
                                                     </span>
                                                 </div>
-                                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                                                <div className="w-full bg-[var(--bg-secondary)] rounded-full h-2">
                                                     <div
-                                                        className="bg-gradient-to-r from-purple-500 to-blue-500 dark:from-[#ff2a6d] dark:to-[#05d9e8] h-2 rounded-full transition-all duration-300"
+                                                        className="bg-[var(--accent-primary)] h-2 rounded-full transition-all duration-300"
                                                         style={{ width: `${transfer.progress}%` }}
                                                     />
                                                 </div>
@@ -633,7 +633,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                         )}
 
                                     {/* Transfer Stats */}
-                                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                                    <div className="flex items-center justify-between text-xs text-[var(--text-tertiary)]">
                                         <div className="flex items-center gap-3">
                                             {transfer.state === TransferState.TRANSFERRING && (
                                                 <>
@@ -658,7 +658,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                                 <span className="text-red-600 dark:text-[#ff2a6d] font-medium">✗ Failed</span>
                                             )}
                                             {transfer.state === TransferState.CANCELLED && (
-                                                <span className="text-slate-600 dark:text-slate-400 font-medium">Cancelled</span>
+                                                <span className="text-[var(--text-secondary)] font-medium">Cancelled</span>
                                             )}
                                         </div>
 

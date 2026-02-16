@@ -44,7 +44,7 @@ export default function TextTransferSection({ messages = [], sendText }) {
     const maxChars = 10000;
 
     return (
-        <div className="flex flex-col h-full bg-gradient-to-br from-purple-50 to-blue-50 dark:from-[#23153c] dark:to-[#2c1a4a] rounded-xl sm:rounded-2xl overflow-hidden shadow-inner border border-white/20 dark:border-white/5">
+        <div className="flex flex-col h-full bg-[var(--bg-window)] rounded-xl sm:rounded-2xl overflow-hidden shadow-inner border border-[var(--border-subtle)]">
             {/* Chat Messages */}
             <div
                 ref={chatContainerRef}
@@ -53,13 +53,13 @@ export default function TextTransferSection({ messages = [], sendText }) {
                 {messages.length === 0 ? (
                     <div className="h-full flex items-center justify-center">
                         <div className="text-center p-6 sm:p-8">
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 dark:from-[#ff2a6d] dark:to-[#05d9e8] flex items-center justify-center opacity-50">
-                                <Send className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center">
+                                <Send className="w-6 h-6 sm:w-8 sm:h-8 text-[var(--text-secondary)]" />
                             </div>
-                            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+                            <p className="text-sm sm:text-base text-[var(--text-secondary)]">
                                 No messages yet
                             </p>
-                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                            <p className="text-xs text-[var(--text-tertiary)] mt-2">
                                 Start the conversation!
                             </p>
                         </div>
@@ -80,7 +80,7 @@ export default function TextTransferSection({ messages = [], sendText }) {
                                     onDoubleClick={() => handleSpotlight(msgId)}
                                 >
                                     {/* Sender Name */}
-                                    <span className="text-xs text-slate-500 dark:text-slate-400 mb-1 px-2">
+                                    <span className="text-xs text-[var(--text-tertiary)] mb-1 px-2">
                                         {senderName}
                                     </span>
 
@@ -88,10 +88,10 @@ export default function TextTransferSection({ messages = [], sendText }) {
                                     <div
                                         className={`
                                             max-w-[75%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm
-                                            transition-all duration-300 cursor-pointer
+                                            transition-all duration-300 cursor-pointer border
                                             ${isReceived
-                                                ? 'bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 backdrop-blur-sm shadow-sm border border-slate-100 dark:border-slate-700'
-                                                : 'bg-gradient-to-br from-purple-500 to-blue-500 dark:from-[#ff2a6d] dark:to-[#05d9e8] text-white shadow-md shadow-purple-500/20 dark:shadow-[#ff2a6d]/20'
+                                                ? 'bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-primary)] backdrop-blur-sm'
+                                                : 'bg-[var(--accent-primary)] border-transparent text-white shadow-md'
                                             }
                                             ${isSpotlighted
                                                 ? 'ring-4 ring-yellow-400 dark:ring-yellow-500 scale-105 shadow-2xl'
@@ -112,7 +112,7 @@ export default function TextTransferSection({ messages = [], sendText }) {
             </div>
 
             {/* Input Section */}
-            <div className="flex-shrink-0 p-3 sm:p-4 bg-white/50 dark:bg-white/5 backdrop-blur-md border-t border-slate-200 dark:border-white/10 rounded-b-xl sm:rounded-b-2xl">
+            <div className="flex-shrink-0 p-3 sm:p-4 bg-[var(--bg-window)] backdrop-blur-md border-t border-[var(--border-subtle)] rounded-b-xl sm:rounded-b-2xl">
                 <form onSubmit={handleSend} className="flex items-center gap-2">
                     {/* Text Input */}
                     <div className="flex-1 relative">
@@ -127,18 +127,18 @@ export default function TextTransferSection({ messages = [], sendText }) {
                                 }
                             }}
                             placeholder="Type a message..."
-                            className="w-full px-4 py-2.5 sm:py-3 pr-16 bg-white dark:bg-slate-900/50 
-                                     border border-slate-200 dark:border-slate-700 rounded-full
-                                     text-sm sm:text-base text-slate-900 dark:text-slate-100 placeholder-slate-400
-                                     focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-[#ff2a6d]
+                            className="w-full px-4 py-2.5 sm:py-3 pr-16 bg-[var(--bg-secondary)] 
+                                     border border-[var(--border-subtle)] rounded-full
+                                     text-sm sm:text-base text-[var(--text-primary)] placeholder-[var(--text-tertiary)]
+                                     focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
                                      transition-all shadow-sm"
                             maxLength={maxChars}
                         />
                         {/* Character count inside input */}
                         {message.length > 0 && (
                             <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-xs ${charCount > maxChars * 0.9
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-slate-400 dark:text-slate-500"
+                                ? "text-red-500"
+                                : "text-[var(--text-tertiary)]"
                                 }`}>
                                 {charCount}
                             </span>
@@ -149,7 +149,7 @@ export default function TextTransferSection({ messages = [], sendText }) {
                     <button
                         type="submit"
                         disabled={!message.trim() || sending}
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 dark:from-[#ff2a6d] dark:to-[#05d9e8]
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--accent-primary)]
                                  text-white flex items-center justify-center flex-shrink-0
                                  disabled:opacity-50 disabled:cursor-not-allowed
                                  transition-all hover:scale-110 active:scale-95 shadow-lg
