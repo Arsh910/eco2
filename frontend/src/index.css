@@ -16,6 +16,7 @@
     --bg-desktop: #F5F5DC;
     /* Beige / Off-White */
     --bg-window: rgba(255, 255, 255, 0.85);
+    --bg-secondary: rgba(240, 240, 240, 0.8);
     --bg-dock: rgba(255, 255, 255, 0.7);
     --bg-glass: rgba(255, 255, 255, 0.6);
 
@@ -57,6 +58,7 @@
     --bg-desktop: #020617;
     /* Slate-950 */
     --bg-window: rgba(11, 17, 32, 0.95);
+    --bg-secondary: rgba(30, 41, 59, 1);
     --bg-dock: rgba(11, 17, 32, 0.6);
     --bg-glass: rgba(15, 23, 42, 0.6);
 
