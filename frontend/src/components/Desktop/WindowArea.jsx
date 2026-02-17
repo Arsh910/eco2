@@ -14,6 +14,7 @@ const AppComponents = {
 
 const WindowArea = ({ app, onClose }) => {
     const nodeRef = useRef(null);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -58,7 +59,10 @@ const WindowArea = ({ app, onClose }) => {
                 className="bg-[var(--bg-window)] backdrop-blur-2xl border border-[var(--border-subtle)] sm:rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-[var(--border-highlight)] transition-colors duration-300"
             >
                 {/* Window Title Bar */}
-                <div className="window-title-bar h-12 bg-white/5 border-b border-[var(--border-subtle)] flex items-center justify-between px-2 select-none cursor-grab active:cursor-grabbing touch-none transition-colors duration-300">
+                <div
+                    className={`window-title-bar h-12 border-b border-[var(--border-subtle)] flex items-center justify-between px-2 select-none cursor-grab active:cursor-grabbing touch-none transition-colors duration-300 ${isProcessing ? 'bg-yellow-100/10' : 'bg-white/5'
+                        }`}
+                >
                     <div className="flex items-center">
                         {/* Close Button - 44px touch target */}
                         <div
@@ -78,13 +82,20 @@ const WindowArea = ({ app, onClose }) => {
                             <span className="w-3 h-3 rounded-full bg-green-500 group-hover:bg-green-600 transition-colors"></span>
                         </div> */}
                     </div>
-                    <span className="text-sm font-medium text-[var(--text-secondary)] capitalize pointer-events-none transition-colors duration-300">{app}</span>
+                    <span className={`text-sm font-medium capitalize pointer-events-none transition-colors duration-300 ${isProcessing ? 'text-yellow-200' : 'text-[var(--text-secondary)]'}`}>{app}</span>
                     <div className="w-14"></div>
                 </div>
 
                 {/* Window Content */}
                 <div className="flex-grow overflow-auto relative" style={{ cursor: 'default' }}>
-                    {AppComponent ? <AppComponent /> : <div className="p-4 text-red-400">App not found</div>}
+                    {AppComponent ? (
+                        <AppComponent
+                            onProcessStart={() => setIsProcessing(true)}
+                            onProcessEnd={() => setIsProcessing(false)}
+                        />
+                    ) : (
+                        <div className="p-4 text-red-400">App not found</div>
+                    )}
                 </div>
             </div>
         </Draggable>

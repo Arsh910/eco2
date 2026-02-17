@@ -4,7 +4,7 @@ import { commands } from './commands';
 import { useView } from '../../../context/ViewContext'; // Assuming this exists for theme
 // If launchApp is needed, we might need to pass it as a prop or context
 
-const Terminal = ({ onClose, onLaunchApp }) => {
+const Terminal = ({ onClose, onLaunchApp, onProcessStart, onProcessEnd }) => {
     const [input, setInput] = useState("");
     const [history, setHistory] = useState([
         { type: 'system', content: 'Welcome to EcoShell v1.0' },
@@ -40,16 +40,24 @@ const Terminal = ({ onClose, onLaunchApp }) => {
         const command = commands[cmdName];
 
         if (command) {
-            await command.execute(args, {
-                print: (text, type = 'text') => {
-                    newHistory.push({ type, content: text });
-                },
-                clear: () => {
-                    newHistory.length = 0; // Clear array
-                },
-                toggleTheme,
-                launchApp: onLaunchApp
-            });
+            if (onProcessStart) onProcessStart();
+
+            try {
+                await command.execute(args, {
+                    print: (text, type = 'text') => {
+                        newHistory.push({ type, content: text });
+                    },
+                    clear: () => {
+                        newHistory.length = 0; // Clear array
+                    },
+                    toggleTheme,
+                    launchApp: onLaunchApp
+                });
+            } catch (error) {
+                newHistory.push({ type: 'error', content: `Execution error: ${error.message}` });
+            } finally {
+                if (onProcessEnd) onProcessEnd();
+            }
         } else {
             newHistory.push({ type: 'error', content: `Command not found: ${cmdName}` });
         }
