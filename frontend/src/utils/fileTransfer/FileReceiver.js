@@ -111,8 +111,25 @@ export class FileReceiver {
         this.startTime = Date.now();
         this.setState(TransferState.TRANSFERRING);
 
+        // Notify sender that we are ready to receive
+        this.sendTransferAccepted();
+
         // Process any chunks that arrived while initializing
         await this.flushBuffer();
+    }
+
+    /**
+     * Send transfer accepted message to sender
+     */
+    sendTransferAccepted() {
+        const msg = {
+            type: MessageType.TRANSFER_ACCEPTED,
+            payload: {
+                fileId: this.fileId
+            }
+        };
+        this.ws.send(JSON.stringify(msg));
+        console.log('[FileReceiver] Sent transfer-accepted:', msg);
     }
 
     /**

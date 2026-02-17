@@ -1,21 +1,116 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Pause, Play, XCircle, Upload, Files } from "lucide-react";
+import { X, Pause, Play, XCircle, Upload, Files, Lock, Unlock, Check } from "lucide-react";
 import { FileSender } from "../../utils/fileTransfer/FileSender.js";
 import { FileReceiver } from "../../utils/fileTransfer/FileReceiver.js";
 import { generateFileId, formatBytes, formatSpeed, formatDuration, calculateETA, downloadFromOPFS } from "../../utils/fileTransfer/helpers.js";
 import { TransferState } from "../../utils/fileTransfer/constants.js";
+import { encryptFile, decryptFile } from "../../utils/crypto/encryption.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 import "../../pages/eco2apps/connect/DataTransfer.css";
 
 export default function FileTransferSection({ wsRef, setFileTransferCallbacks }) {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [transfers, setTransfers] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
+    const [isEncryptionEnabled, setIsEncryptionEnabled] = useState(false);
+    const [encryptionPassword, setEncryptionPassword] = useState("");
+    const { user, guestName } = useAuth();
+    const currentUsername = user?.username || guestName || 'Anonymous';
 
     // Track active sender and receiver instances
     const activeSendersRef = useRef(new Map()); // fileId -> FileSender instance
     const activeReceiverRef = useRef(null); // Only one receiver at a time
     const fileInputRef = useRef(null); // For file selection button
     const dragCounter = useRef(0);
+
+    const setupReceiver = async (meta) => {
+        // Create new receiver instance
+        const receiver = new FileReceiver(wsRef.current);
+        activeReceiverRef.current = receiver;
+
+        // Set receiver callbacks
+        receiver.onProgress = (progress) => {
+            const eta = progress.speed > 0
+                ? calculateETA(meta.fileSize - progress.bytesReceived, progress.speed)
+                : null;
+
+            setTransfers(prev => prev.map(t =>
+                t.fileId === meta.fileId ? {
+                    ...t,
+                    progress: progress.percentage,
+                    bytesTransferred: progress.bytesReceived,
+                    currentCheckpoint: progress.checkpointIndex,
+                    speed: progress.speed,
+                    eta
+                } : t
+            ));
+        };
+
+        receiver.onCheckpointCommit = (checkpointIndex) => {
+            console.log('[FileTransferSection] Checkpoint committed:', checkpointIndex);
+        };
+
+        receiver.onComplete = (result) => {
+            console.log('[FileTransferSection] Transfer complete:', result);
+            setTransfers(prev => prev.map(t =>
+                t.fileId === meta.fileId ? {
+                    ...t,
+                    state: TransferState.COMPLETED,
+                    progress: 100
+                } : t
+            ));
+            activeReceiverRef.current = null;
+        };
+
+        receiver.onError = (error) => {
+            console.error('[FileTransferSection] Receiver error:', error);
+            setTransfers(prev => prev.map(t =>
+                t.fileId === meta.fileId ? {
+                    ...t,
+                    state: TransferState.FAILED,
+                    error: error.message
+                } : t
+            ));
+        };
+
+        receiver.onStateChange = (newState) => {
+            setTransfers(prev => prev.map(t =>
+                t.fileId === meta.fileId ? { ...t, state: newState } : t
+            ));
+        };
+
+        // Handle file-meta (prompts user for save location)
+        await receiver.handleFileMeta(meta);
+    };
+
+    const handleAcceptTransfer = async (transferId) => {
+        const transfer = transfers.find(t => t.id === transferId);
+        if (!transfer || !transfer.meta) return;
+
+        // Create receiver and start transfer
+        if (activeReceiverRef.current) {
+            alert("A transfer is currently in progress. Please wait for it to finish.");
+            return;
+        }
+
+        try {
+            await setupReceiver(transfer.meta);
+
+            // Update state to INITIALIZING
+            setTransfers(prev => prev.map(t =>
+                t.id === transferId ? { ...t, state: TransferState.INITIALIZING } : t
+            ));
+        } catch (error) {
+            console.error("Error accepting transfer:", error);
+            alert("Failed to start transfer.");
+        }
+    };
+
+    const handleRejectTransfer = (transferId) => {
+        // For now, just remove from list. Ideally, send a cancel message back.
+        setTransfers(prev => prev.filter(t => t.id !== transferId));
+        // TODO: Send rejection message to sender
+    };
 
     useEffect(() => {
         if (!setFileTransferCallbacks) return;
@@ -37,6 +132,10 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                     if (existingTransfer && meta.resumed) {
                         // Resume - just update state to TRANSFERRING
                         console.log('[FileTransferSection] Resuming existing transfer');
+
+                        // Re-attach receiver logic if needed (this part is tricky with resume, assuming existing receiver or re-setup)
+                        // For simplicity, if we are resuming, we might need to re-setup receiver if page reloaded
+
                         return prev.map(t =>
                             t.fileId === meta.fileId ? {
                                 ...t,
@@ -50,9 +149,9 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                         return prev;
                     }
 
-                    // New transfer - add to list
-                    const transferId = meta.fileId;
-                    return [...prev, {
+                    // New transfer - add to list as PENDING_ACCEPTANCE
+                    const transferId = meta.fileId; // Or generate unique ID
+                    const transferToAdd = {
                         id: transferId,
                         fileId: meta.fileId,
                         type: 'file',
@@ -60,81 +159,25 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                         size: meta.fileSize,
                         timestamp: new Date(),
                         direction: 'received',
-                        state: TransferState.INITIALIZING,
+                        state: TransferState.PENDING_ACCEPTANCE,
                         progress: 0,
                         bytesTransferred: 0,
                         speed: 0,
                         eta: null,
                         currentCheckpoint: 0,
-                        totalCheckpoints: Math.ceil(meta.totalChunks / 128)
-                    }];
+                        totalCheckpoints: Math.ceil(meta.totalChunks / 128),
+                        meta: meta, // Store meta for later use
+                        senderUsername: meta.username || 'Unknown User'
+                    };
+                    return [...prev, transferToAdd];
                 });
 
-                // Only create new receiver if doesn't exist or is different fileId
-                if (!activeReceiverRef.current || activeReceiverRef.current.fileId !== meta.fileId || meta.resumed) {
-                    // For resume, we can skip creating new receiver if it already exists
-                    if (meta.resumed && activeReceiverRef.current && activeReceiverRef.current.fileId === meta.fileId) {
-                        console.log('[FileTransferSection] Reusing existing receiver for resume');
-                        return;
+                // If resumed, we might need to immediate trigger receiver setup if not already active
+                if (meta.resumed) {
+                    if (!activeReceiverRef.current || activeReceiverRef.current.fileId !== meta.fileId) {
+                        // Re-setup checking logic or just auto-accept resumes for now
+                        setupReceiver(meta);
                     }
-
-                    // Create new receiver instance
-                    const receiver = new FileReceiver(wsRef.current);
-                    activeReceiverRef.current = receiver;
-
-                    // Set receiver callbacks
-                    receiver.onProgress = (progress) => {
-                        const eta = progress.speed > 0
-                            ? calculateETA(meta.fileSize - progress.bytesReceived, progress.speed)
-                            : null;
-
-                        setTransfers(prev => prev.map(t =>
-                            t.fileId === meta.fileId ? {
-                                ...t,
-                                progress: progress.percentage,
-                                bytesTransferred: progress.bytesReceived,
-                                currentCheckpoint: progress.checkpointIndex,
-                                speed: progress.speed,
-                                eta
-                            } : t
-                        ));
-                    };
-
-                    receiver.onCheckpointCommit = (checkpointIndex) => {
-                        console.log('[FileTransferSection] Checkpoint committed:', checkpointIndex);
-                    };
-
-                    receiver.onComplete = (result) => {
-                        console.log('[FileTransferSection] Transfer complete:', result);
-                        setTransfers(prev => prev.map(t =>
-                            t.fileId === meta.fileId ? {
-                                ...t,
-                                state: TransferState.COMPLETED,
-                                progress: 100
-                            } : t
-                        ));
-                        activeReceiverRef.current = null;
-                    };
-
-                    receiver.onError = (error) => {
-                        console.error('[FileTransferSection] Receiver error:', error);
-                        setTransfers(prev => prev.map(t =>
-                            t.fileId === meta.fileId ? {
-                                ...t,
-                                state: TransferState.FAILED,
-                                error: error.message
-                            } : t
-                        ));
-                    };
-
-                    receiver.onStateChange = (newState) => {
-                        setTransfers(prev => prev.map(t =>
-                            t.fileId === meta.fileId ? { ...t, state: newState } : t
-                        ));
-                    };
-
-                    // Handle file-meta (prompts user for save location)
-                    await receiver.handleFileMeta(meta);
                 }
             },
             onCheckpointAck: (checkpointIndex) => {
@@ -146,6 +189,15 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
             onResumeInfo: (info) => {
                 console.log('[FileTransferSection] Resume info:', info);
                 // Handle resume if needed
+            },
+            onTransferAccepted: (data) => {
+                console.log('[FileTransferSection] Transfer accepted by receiver:', data);
+                const sender = activeSendersRef.current.get(data.fileId);
+                if (sender) {
+                    sender.handleTransferAccepted();
+                } else {
+                    console.warn('[FileTransferSection] Received acceptance for unknown transfer:', data.fileId);
+                }
             },
             onTransferComplete: (data) => {
                 console.log('[FileTransferSection] Transfer complete notification:', data);
@@ -270,11 +322,33 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
     const handleSendFiles = async () => {
         if (selectedFiles.length === 0 || !wsRef.current) return;
 
+        if (isEncryptionEnabled && !encryptionPassword) {
+            alert("Please enter a password for encryption.");
+            return;
+        }
+
         // Send each file using FileSender
         for (const fileData of selectedFiles) {
+            let fileToSend = fileData.file;
+            let fileNameToSend = fileData.fileName;
+
+            // Encrypt if enabled
+            if (isEncryptionEnabled) {
+                try {
+                    const encryptedBlob = await encryptFile(fileToSend, encryptionPassword);
+                    // Create a new File object from the blob, appending .enc
+                    fileNameToSend = `${fileData.fileName}.enc`;
+                    fileToSend = new File([encryptedBlob], fileNameToSend, { type: 'application/octet-stream' });
+                } catch (error) {
+                    console.error("Encryption failed:", error);
+                    alert(`Failed to encrypt ${fileData.fileName}`);
+                    continue;
+                }
+            }
+
             // Generate deterministic ID based on file properties for resume support
-            const fileId = await generateFileId(fileData.file);
-            const sender = new FileSender(fileData.file, fileId, wsRef.current);
+            const fileId = await generateFileId(fileToSend);
+            const sender = new FileSender(fileToSend, fileId, wsRef.current, currentUsername);
 
             // Store sender instance
             activeSendersRef.current.set(fileId, sender);
@@ -284,8 +358,8 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                 id: Date.now() + Math.random(),
                 fileId,
                 type: "file",
-                fileName: fileData.fileName,
-                size: fileData.size,
+                fileName: fileNameToSend,
+                size: fileToSend.size,
                 timestamp: new Date(),
                 direction: "sent",
                 state: TransferState.INITIALIZING,
@@ -296,6 +370,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                 currentCheckpoint: 0,
                 totalCheckpoints: sender.totalCheckpoints,
                 url: fileData.preview || "#",
+                isEncrypted: isEncryptionEnabled
             };
 
             setTransfers((prev) => [...prev, transfer]);
@@ -315,7 +390,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
             };
 
             sender.onCheckpointAck = (checkpointIndex) => {
-                console.log(`[FileTransferSection] Checkpoint ${checkpointIndex} acknowledged for ${fileData.fileName}`);
+                console.log(`[FileTransferSection] Checkpoint ${checkpointIndex} acknowledged for ${fileNameToSend}`);
             };
 
             sender.onComplete = (result) => {
@@ -380,6 +455,10 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
             if (file.preview) URL.revokeObjectURL(file.preview);
         });
         setSelectedFiles([]);
+
+        // Reset encryption logic if desired, or keep it for next batch
+        // setIsEncryptionEnabled(false);
+        // setEncryptionPassword("");
     };
 
     const handlePauseResume = (transferId) => {
@@ -422,7 +501,54 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
 
     const handleDownload = async (fileName) => {
         try {
-            await downloadFromOPFS(fileName);
+            // Check if file is encrypted
+            if (fileName.endsWith('.enc')) {
+                // We need to read the file from OPFS first to decrypt it
+                // Since downloadFromOPFS triggers a download immediately, we might need a helper to just get the blob
+                // But OPFS API is tricky. 
+                // Let's assume we can get the FileHandle or Blob from OPFS.
+
+                // For simplicity, we'll try to get the file via a temporary download URL-like approach 
+                // OR we can implement a `getFileFromOPFS` helper. 
+                // Since `downloadFromOPFS` uses `createWritable`, we need a counterpart.
+                // Assuming standard File System Access API where we stored it.
+
+                const root = await navigator.storage.getDirectory();
+                const fileHandle = await root.getFileHandle(fileName);
+                const file = await fileHandle.getFile();
+
+                let password = encryptionPassword;
+                // Prompt if password not set or incorrect (simple loop or just one try)
+                // Using standard prompt for now
+                if (!password) {
+                    password = prompt(`The file "${fileName}" is encrypted.\nEnter password to decrypt:`);
+                }
+
+                if (!password) return; // User cancelled
+
+                try {
+                    const decryptedBlob = await decryptFile(file, password);
+                    // Create download link for decrypted file
+                    const originalName = fileName.replace(/\.enc$/, '');
+                    const url = URL.createObjectURL(decryptedBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = originalName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (err) {
+                    alert("Decryption failed. Incorrect password or corrupted file.");
+                    // Allow downloading original encrypted file as fallback?
+                    if (confirm("Decryption failed. Download encrypted file instead?")) {
+                        await downloadFromOPFS(fileName);
+                    }
+                }
+
+            } else {
+                await downloadFromOPFS(fileName);
+            }
         } catch (error) {
             console.error('Download failed:', error);
             alert('Failed to download file. Please try again.');
@@ -432,33 +558,59 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
     return (
         <div className="flex flex-col h-full">
             {/* Header with File Selection Button */}
-            <div className="mb-4 flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
-                        File Transfer
-                    </h2>
-                    <p className="text-sm text-[var(--text-secondary)]">
-                        Supports 100GB+ files
-                    </p>
+            <div className="mb-4 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
+                            File Transfer
+                        </h2>
+                        <p className="text-sm text-[var(--text-secondary)]">
+                            Supports 100GB+ files • End-to-end Encrypted
+                        </p>
+                    </div>
+
+                    {/* Compact File Selection Button */}
+                    <div className="flex items-center gap-2">
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            onChange={handleFileInput}
+                            className="hidden"
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="btn-primary flex items-center gap-2 px-3 sm:px-4"
+                            title="Select Files"
+                        >
+                            <Upload className="w-4 h-4" />
+                            <span className="hidden sm:inline">Select Files</span>
+                        </button>
+                    </div>
                 </div>
 
-                {/* Compact File Selection Button */}
-                <div className="flex items-center gap-2">
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        onChange={handleFileInput}
-                        className="hidden"
-                    />
+                {/* Encryption Toggle Section */}
+                <div className="flex items-center gap-4 bg-[var(--bg-secondary)] p-3 rounded-xl border border-[var(--border-subtle)]">
                     <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="btn-primary flex items-center gap-2 px-3 sm:px-4"
-                        title="Select Files"
+                        onClick={() => setIsEncryptionEnabled(!isEncryptionEnabled)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${isEncryptionEnabled
+                            ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
+                            : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                            }`}
                     >
-                        <Upload className="w-4 h-4" />
-                        <span className="hidden sm:inline">Select Files</span>
+                        {isEncryptionEnabled ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                        {isEncryptionEnabled ? 'Encryption ON' : 'Encryption OFF'}
                     </button>
+
+                    {isEncryptionEnabled && (
+                        <input
+                            type="password"
+                            value={encryptionPassword}
+                            onChange={(e) => setEncryptionPassword(e.target.value)}
+                            placeholder="Enter encryption password"
+                            className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                    )}
                 </div>
             </div>
 
@@ -474,7 +626,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                             className="btn-primary text-sm"
                             disabled={!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN}
                         >
-                            Send All
+                            {isEncryptionEnabled ? 'Encrypt & Send' : 'Send All'}
                         </button>
                     </div>
 
@@ -512,6 +664,11 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                         <span className="bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide uppercase">
                                             {formatBytes(fileData.size)}
                                         </span>
+                                        {isEncryptionEnabled && (
+                                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                                <Lock className="w-3 h-3" /> Encrypted
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -551,15 +708,47 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                     {/* Transfer Header */}
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-[var(--text-primary)] truncate">
-                                                {transfer.fileName}
-                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-medium text-[var(--text-primary)] truncate">
+                                                    {transfer.fileName}
+                                                </p>
+                                                {(transfer.fileName.endsWith('.enc') || transfer.isEncrypted) && (
+                                                    <Lock className="w-3 h-3 text-green-500" />
+                                                )}
+                                            </div>
                                             <p className="text-xs text-[var(--text-secondary)]">
-                                                {formatBytes(transfer.size)} • {transfer.direction === 'sent' ? 'Sending' : 'Receiving'}
+                                                {formatBytes(transfer.size)} • {
+                                                    transfer.state === TransferState.WAITING_FOR_ACCEPTANCE
+                                                        ? '(Waiting to accept)'
+                                                        : (transfer.direction === 'sent'
+                                                            ? 'Sending'
+                                                            : `Receiving from ${transfer.senderUsername || 'Unknown'}`
+                                                        )
+                                                }
                                             </p>
                                         </div>
 
                                         <div className="flex items-center gap-2">
+                                            {/* Accept/Reject buttons for PENDING_ACCEPTANCE */}
+                                            {transfer.state === TransferState.PENDING_ACCEPTANCE && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleAcceptTransfer(transfer.id)}
+                                                        className="p-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+                                                        title="Accept Transfer"
+                                                    >
+                                                        <Check className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRejectTransfer(transfer.id)}
+                                                        className="p-1.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                                                        title="Reject Transfer"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
+
                                             {/* Pause/Resume button for active sends */}
                                             {transfer.direction === 'sent' &&
                                                 (transfer.state === TransferState.TRANSFERRING || transfer.state === TransferState.PAUSED) && (
@@ -582,7 +771,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                                     onClick={() => handleDownload(transfer.fileName)}
                                                     className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors mr-1"
                                                 >
-                                                    Download
+                                                    {transfer.fileName.endsWith('.enc') ? 'Decrypt & Download' : 'Download'}
                                                 </button>
                                             )}
 

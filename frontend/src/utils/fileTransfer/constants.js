@@ -13,6 +13,7 @@ export const MessageType = {
     FILE_META: 'file-meta',
     RESUME_REQUEST: 'resume-request',
     RESUME_INFO: 'resume-info',
+    TRANSFER_ACCEPTED: 'transfer-accepted',
     CHECKPOINT_ACK: 'checkpoint-ack',
     TRANSFER_COMPLETE: 'transfer-complete',
     TRANSFER_ERROR: 'transfer-error',
@@ -31,6 +32,8 @@ export const HEADER_SIZE = 8;  // 4 bytes checkpointIndex + 4 bytes chunkIndex
 export const TransferState = {
     IDLE: 'idle',
     INITIALIZING: 'initializing',
+    WAITING_FOR_ACCEPTANCE: 'waiting_for_acceptance',
+    PENDING_ACCEPTANCE: 'pending_acceptance',
     TRANSFERRING: 'transferring',
     PAUSED: 'paused',
     COMPLETED: 'completed',

@@ -21,10 +21,11 @@ import {
 } from './constants.js';
 
 export class FileSender {
-    constructor(file, fileId, ws) {
+    constructor(file, fileId, ws, username) {
         this.file = file;
         this.fileId = fileId;
         this.ws = ws;
+        this.username = username || 'Unknown User';
 
         // Calculate transfer metrics
         this.totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -65,7 +66,8 @@ export class FileSender {
                 fileSize: this.file.size,
                 chunkSize: CHUNK_SIZE,
                 checkpointChunks: CHECKPOINT_CHUNKS,
-                totalChunks: this.totalChunks
+                totalChunks: this.totalChunks,
+                username: this.username
             }
         };
 
@@ -119,9 +121,23 @@ export class FileSender {
         // Send file-meta first
         this.sendFileMeta();
 
-        // Start sending chunks
+        // Wait for acceptance
+        this.setState(TransferState.WAITING_FOR_ACCEPTANCE);
+        console.log('[FileSender] Waiting for receiver acceptance...');
+    }
+
+    /**
+     * Handle transfer accepted message
+     */
+    async handleTransferAccepted() {
+        if (this.state !== TransferState.WAITING_FOR_ACCEPTANCE) {
+            console.warn('[FileSender] Received acceptance but not in waiting state:', this.state);
+            return;
+        }
+
+        console.log('[FileSender] Transfer accepted by receiver. Starting transmission...');
         this.setState(TransferState.TRANSFERRING);
-        await this.sendChunks(startChunk);
+        await this.sendChunks(this.currentChunk);
     }
 
     /**
@@ -180,6 +196,43 @@ export class FileSender {
 
         // All chunks sent
         console.log('[FileSender] All chunks sent, waiting for final checkpoint ACK');
+    }
+
+    // ... handleBackpressure, handleCheckpointAck ...
+
+    /**
+     * Resume transfer
+     */
+    async resume() {
+        if (this.state === TransferState.PAUSED) {
+            this.isPaused = false;
+            // this.setState(TransferState.TRANSFERRING); // Don't set transferring yet
+
+            // Notify receiver that transfer resumed
+            this.ws.send(JSON.stringify({
+                type: MessageType.FILE_META,  // Re-notify with metadata to indicate resume
+                payload: {
+                    fileId: this.fileId,
+                    fileName: this.file.name,
+                    fileSize: this.file.size,
+                    chunkSize: CHUNK_SIZE,
+                    checkpointChunks: CHECKPOINT_CHUNKS,
+                    totalChunks: this.totalChunks,
+                    resumed: true
+                }
+            }));
+
+            // Wait for receiver to accept (it essentially "re-accepts" on resume or confirms ready)
+            // For simplicity, we can reuse waiting state.
+            // However, receiver currently auto-accepts resumes if logic is implemented that way.
+            // Let's force wait for consistency, or we need to know if receiver is ready.
+            // Receiver logic updates: if resume, it should send accepted/resume-info back.
+
+            // Ideally we wait for RESUME_INFO or TRANSFER_ACCEPTED.
+            // Let's treat it as waiting for acceptance again to simplify protocol
+            this.setState(TransferState.WAITING_FOR_ACCEPTANCE);
+            console.log('[FileSender] Resuming - waiting for acceptance/confirmation...');
+        }
     }
 
     /**
