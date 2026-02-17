@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Terminal as TerminalIcon, Maximize2, Minimize2, X } from 'lucide-react';
 import { commands } from './commands';
-import { useView } from '../../../context/ViewContext'; // Assuming this exists for theme
-// If launchApp is needed, we might need to pass it as a prop or context
+import { useView } from '../../../context/ViewContext';
+import { useAuth } from '../../../context/AuthContext';
 
 const Terminal = ({ onClose, onLaunchApp, onProcessStart, onProcessEnd }) => {
+    const { user, guestName } = useAuth();
+    const username = user?.username || user?.name || guestName || 'guest';
+
     const [input, setInput] = useState("");
     const [history, setHistory] = useState([
         { type: 'system', content: 'Welcome to EcoShell v1.0' },
@@ -30,7 +33,7 @@ const Terminal = ({ onClose, onLaunchApp, onProcessStart, onProcessEnd }) => {
         if (!trimmed) return;
 
         // Add to display history
-        const newHistory = [...history, { type: 'input', content: `guest@eco2:~$ ${trimmed}` }];
+        const newHistory = [...history, { type: 'input', content: `${username}@eco2:~$ ${trimmed}` }];
 
         // Add to command history for up/down arrow
         setCommandHistory(prev => [...prev, trimmed]);
@@ -110,7 +113,7 @@ const Terminal = ({ onClose, onLaunchApp, onProcessStart, onProcessEnd }) => {
             </div>
 
             <div className="flex items-center gap-2 p-2 border-t border-white/10">
-                <span className="text-green-500 font-bold">guest@eco2:~$</span>
+                <span className="text-green-500 font-bold">{username}@eco2:~$</span>
                 <input
                     ref={inputRef}
                     type="text"

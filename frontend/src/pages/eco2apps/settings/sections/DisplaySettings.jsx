@@ -107,9 +107,8 @@ const DisplaySettings = ({ isGuest }) => {
                                 }}
                                 className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50"
                             >
-                                <option value="globe">Cyber Globe</option>
-                                <option value="net" disabled>Neural Net (Coming Soon)</option>
-                                <option value="dots" disabled>Particle Field (Coming Soon)</option>
+                                <option value="globe" className="bg-[var(--bg-secondary)] text-[var(--text-primary)]">Cyber Globe</option>
+                                <option value="net" className="bg-[var(--bg-secondary)] text-[var(--text-primary)]">Neural Net</option>
                             </select>
                             <p className="text-xs text-[var(--text-tertiary)] mt-2">
                                 Interactive 3D background powered by WebGL.
