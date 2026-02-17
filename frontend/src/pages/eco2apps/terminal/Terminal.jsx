@@ -3,6 +3,7 @@ import { Terminal as TerminalIcon, Maximize2, Minimize2, X } from 'lucide-react'
 import { commands } from './commands';
 import { useView } from '../../../context/ViewContext';
 import { useAuth } from '../../../context/AuthContext';
+import MatrixRain from './MatrixRain';
 
 const Terminal = ({ onClose, onLaunchApp, onProcessStart, onProcessEnd }) => {
     const { user, guestName } = useAuth();
@@ -15,6 +16,7 @@ const Terminal = ({ onClose, onLaunchApp, onProcessStart, onProcessEnd }) => {
     ]);
     const [historyIndex, setHistoryIndex] = useState(-1);
     const [commandHistory, setCommandHistory] = useState([]);
+    const [showMatrix, setShowMatrix] = useState(false);
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -54,7 +56,8 @@ const Terminal = ({ onClose, onLaunchApp, onProcessStart, onProcessEnd }) => {
                         newHistory.length = 0; // Clear array
                     },
                     toggleTheme,
-                    launchApp: onLaunchApp
+                    launchApp: onLaunchApp,
+                    setMatrix: setShowMatrix
                 });
             } catch (error) {
                 newHistory.push({ type: 'error', content: `Execution error: ${error.message}` });
@@ -102,29 +105,32 @@ const Terminal = ({ onClose, onLaunchApp, onProcessStart, onProcessEnd }) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#1e1e1e] text-green-400 font-mono text-sm sm:text-base p-2 rounded-b-xl select-text" onClick={handleContainerClick}>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                {history.map((line, i) => (
-                    <div key={i} className={`whitespace-pre-wrap break-all ${line.type === 'error' ? 'text-red-400' : line.type === 'success' ? 'text-green-300' : line.type === 'system' ? 'text-blue-300' : 'text-slate-300'}`}>
-                        {line.content}
-                    </div>
-                ))}
-                <div ref={bottomRef} />
-            </div>
+        <>
+            {showMatrix && <MatrixRain onExit={() => setShowMatrix(false)} />}
+            <div className="flex flex-col h-full bg-[#1e1e1e] text-green-400 font-mono text-sm sm:text-base p-2 rounded-b-xl select-text" onClick={handleContainerClick}>
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                    {history.map((line, i) => (
+                        <div key={i} className={`whitespace-pre-wrap break-all ${line.type === 'error' ? 'text-red-400' : line.type === 'success' ? 'text-green-300' : line.type === 'system' ? 'text-blue-300' : 'text-slate-300'}`}>
+                            {line.content}
+                        </div>
+                    ))}
+                    <div ref={bottomRef} />
+                </div>
 
-            <div className="flex items-center gap-2 p-2 border-t border-white/10">
-                <span className="text-green-500 font-bold">{username}@eco2:~$</span>
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="flex-1 bg-transparent border-none outline-none text-slate-100 focus:ring-0"
-                    autoFocus
-                />
+                <div className="flex items-center gap-2 p-2 border-t border-white/10">
+                    <span className="text-green-500 font-bold">{username}@eco2:~$</span>
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        className="flex-1 bg-transparent border-none outline-none text-slate-100 focus:ring-0"
+                        autoFocus
+                    />
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 

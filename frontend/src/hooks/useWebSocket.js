@@ -135,6 +135,12 @@ export const useWebSocket = (roomCode) => {
                                 }
                                 break;
 
+                            case MessageType.TRANSFER_ACCEPTED:
+                                if (fileTransferCallbacksRef.current.onTransferAccepted) {
+                                    fileTransferCallbacksRef.current.onTransferAccepted(data.payload || data);
+                                }
+                                break;
+
                             case MessageType.TRANSFER_COMPLETE:
                                 if (fileTransferCallbacksRef.current.onTransferComplete) {
                                     fileTransferCallbacksRef.current.onTransferComplete(data.payload || data);

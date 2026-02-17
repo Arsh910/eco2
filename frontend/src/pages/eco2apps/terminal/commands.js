@@ -32,20 +32,35 @@ const pickFile = () => {
 export const commands = {
     help: {
         description: "List available commands",
+        category: "System",
         execute: (args, { print }) => {
             print("EcoShell v1.0 - Available Commands", "system");
-            const cmdList = Object.entries(commands)
-                .map(([name, cmd]) => `  ${name.padEnd(12)} - ${cmd.description}`)
-                .join('\n');
-            print(cmdList);
+
+            // Group commands by category
+            const categories = {};
+            Object.entries(commands).forEach(([name, cmd]) => {
+                const cat = cmd.category || "General";
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push({ name, description: cmd.description });
+            });
+
+            // Print commands by category
+            Object.keys(categories).forEach(category => {
+                print(`\n[${category}]`, "info");
+                categories[category].forEach(cmd => {
+                    print(`  ${cmd.name.padEnd(12)} - ${cmd.description}`);
+                });
+            });
         }
     },
     clear: {
         description: "Clear terminal history",
+        category: "System",
         execute: (args, { clear }) => clear()
     },
     history: {
         description: "Show command history",
+        category: "System",
         execute: (args, { print, componentState }) => {
             // We'd need access to command history state, or just user scroll
             print("Use Up/Down arrows to navigate history.", "info");
@@ -53,10 +68,12 @@ export const commands = {
     },
     echo: {
         description: "Print text to console",
+        category: "System",
         execute: (args, { print }) => print(args.join(" "))
     },
     theme: {
         description: "Switch theme [dark|light]",
+        category: "Customization",
         execute: (args, { print, toggleTheme }) => {
             const mode = args[0];
             if (mode === "light" || mode === "dark") {
@@ -69,6 +86,7 @@ export const commands = {
     },
     open: {
         description: "Open an app [transfer|settings]",
+        category: "System",
         execute: (args, { print, launchApp }) => {
             const appName = args[0];
             const validApps = ['transfer', 'files', 'settings', 'terminal'];
@@ -82,6 +100,7 @@ export const commands = {
     },
     encrypt: {
         description: "Encrypt a file (AES-GCM)",
+        category: "Security",
         execute: async (args, { print }) => {
             print("Step 1: Select a file to encrypt...", "info");
             const file = await pickFile();
@@ -124,6 +143,7 @@ export const commands = {
     },
     decrypt: {
         description: "Decrypt a .enc file",
+        category: "Security",
         execute: async (args, { print }) => {
             print("Step 1: Select a .enc file to decrypt...", "info");
             const file = await pickFile();
@@ -159,6 +179,7 @@ export const commands = {
     },
     netstat: {
         description: "Show network statistics",
+        category: "Network",
         execute: async (args, { print }) => {
             print("Analyzing network traffic...", "system");
 
@@ -182,6 +203,7 @@ export const commands = {
     },
     ping: {
         description: "Ping a host",
+        category: "Network",
         execute: async (args, { print }) => {
             const host = args[0] || "google.com";
             print(`Pinging ${host} [ICMP sequence]...`, "system");
@@ -197,10 +219,15 @@ export const commands = {
     },
     matrix: {
         description: "Toggle Matrix rain (Easter Egg)",
-        execute: (args, { print, componentState }) => {
-            print("Knock, knock, Neo...", "success");
-            // If we had a state setter for background passed down, we'd use it here
-            // For now just a fun message
+        category: "Easter Eggs",
+        execute: (args, { print, setMatrix }) => {
+            print("Wake up, Neo...", "success");
+            print("The Matrix has you...", "success");
+            if (setMatrix) {
+                setTimeout(() => setMatrix(true), 1500);
+            } else {
+                print("Error: Matrix mode not available.", "error");
+            }
         }
     }
 };
