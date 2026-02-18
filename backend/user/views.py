@@ -91,7 +91,6 @@ class GoogleLoginView(APIView):
         from django.core.files.base import ContentFile
         
         start_time = time.time()
-        print(f"[{start_time}] GoogleLoginView: Request received")
 
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -99,11 +98,8 @@ class GoogleLoginView(APIView):
 
         try:
             req_start = time.time()
-            print(f"[{req_start}] Validating Google token...")
             user_data = validate_google_token(token)
             req_end = time.time()
-            print(f"[{req_end}] Token validated. Time taken: {req_end - req_start:.4f}s")
-            print(f"Google User Data: {user_data}")
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -117,7 +113,6 @@ class GoogleLoginView(APIView):
 
         # Check if user exists
         db_start = time.time()
-        print(f"[{db_start}] Checking/Creating user in DB...")
         user = User.objects.filter(email=email).first()
 
         if user:
@@ -146,7 +141,6 @@ class GoogleLoginView(APIView):
         
         if picture and not user.prof_image:
             try:
-                print(f"Downloading profile image from {picture}...")
                 # Add timeout to prevent hanging on network issues
                 img_response = requests.get(picture, timeout=10)
                 if img_response.status_code == 200:
@@ -155,20 +149,15 @@ class GoogleLoginView(APIView):
                         ContentFile(img_response.content),
                         save=True
                     )
-                    print("Profile image saved successfully.")
-                else:
-                    print(f"Failed to download image. Status code: {img_response.status_code}")
             except Exception as e:
                 print(f"Failed to download profile image: {e}")
 
         db_end = time.time()
-        print(f"[{db_end}] DB operations completed. Time taken: {db_end - db_start:.4f}s")
 
         # Generate JWT
         refresh = RefreshToken.for_user(user)
         
         total_time = time.time() - start_time
-        print(f"GoogleLoginView: Total time taken: {total_time:.4f}s")
         
         # Get absolute URL for profile image
         prof_image_url = user.get_profile_image_url()
