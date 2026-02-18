@@ -3,11 +3,12 @@ import Draggable from 'react-draggable';
 import DataTransfer from '../../pages/eco2apps/connect/DataTransfer';
 import Terminal from '../../pages/eco2apps/terminal/Terminal';
 import Settings from '../../pages/eco2apps/settings/Settings';
+import EcoMeets from '../../pages/eco2apps/ecomeets/EcoMeets';
 
 // Mapping of app IDs to components
 const AppComponents = {
     transfer: DataTransfer,
-    files: () => <div className="p-4 text-white">Files App Coming Soon...</div>,
+    ecomeets: EcoMeets,
     terminal: Terminal,
     settings: Settings,
 };

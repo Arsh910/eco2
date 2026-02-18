@@ -52,6 +52,7 @@ const Home = Loadable(lazy(() => import("../pages/Home.jsx")));
 const Login = Loadable(lazy(() => import("../pages/Login.jsx")));
 const Signup = Loadable(lazy(() => import("../pages/Signup.jsx")));
 const Page404 = Loadable(lazy(() => import("../pages/Page404.jsx")));
+const EcoMeets = Loadable(lazy(() => import("../pages/eco2apps/ecomeets/EcoMeets.jsx")));
 
 import PublicRoute from "../components/PublicRoute.jsx";
 import ProtectedRoute from "../components/ProtectedRoute.jsx";
@@ -64,6 +65,7 @@ export default function Router() {
 
     // Desktop Home - Protected
     { path: "/", element: <ProtectedRoute><Home /></ProtectedRoute> },
+    { path: "/eco2apps/ecomeets", element: <ProtectedRoute><EcoMeets /></ProtectedRoute> },
 
     // Fallback
     { path: "/404", element: <Page404 /> },

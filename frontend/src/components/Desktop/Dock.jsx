@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Share2, Settings, Folder, Terminal } from 'lucide-react';
+import { Share2, Settings, Folder, Terminal, Video } from 'lucide-react';
 
 const DockItem = ({ icon: Icon, label, isOpen, onClick, isMobile }) => {
     return (
@@ -47,7 +47,7 @@ const Dock = ({ currentApp, onLaunchApp }) => {
 
     const apps = [
         { id: 'transfer', label: 'Transfer', icon: Share2 },
-        { id: 'files', label: 'Files', icon: Folder },
+        { id: 'ecomeets', label: 'EcoMeets', icon: Video },
         { id: 'terminal', label: 'Terminal', icon: Terminal },
         { id: 'settings', label: 'Settings', icon: Settings },
     ];
