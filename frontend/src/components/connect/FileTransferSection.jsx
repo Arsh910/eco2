@@ -44,6 +44,11 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                     eta
                 } : t
             ));
+
+            // Update favicon progress
+            if (window.setFaviconProgress) {
+                window.setFaviconProgress(progress.percentage);
+            }
         };
 
         receiver.onCheckpointCommit = (checkpointIndex) => {
@@ -60,6 +65,12 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                 } : t
             ));
             activeReceiverRef.current = null;
+
+            // Update favicon progress
+            if (window.setFaviconProgress) {
+                window.setFaviconProgress(100);
+                setTimeout(() => window.setFaviconProgress(0), 2000);
+            }
         };
 
         receiver.onError = (error) => {
@@ -71,6 +82,11 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                     error: error.message
                 } : t
             ));
+
+            // Update favicon progress
+            if (window.setFaviconProgress) {
+                window.setFaviconProgress(0);
+            }
         };
 
         receiver.onStateChange = (newState) => {
@@ -387,6 +403,12 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                         currentCheckpoint: progress.checkpointIndex
                     } : t
                 ));
+
+                // Update favicon progress
+                if (window.setFaviconProgress) {
+                    const percent = (progress.bytesTransferred / progress.totalBytes) * 100;
+                    window.setFaviconProgress(percent);
+                }
             };
 
             sender.onCheckpointAck = (checkpointIndex) => {
@@ -403,6 +425,12 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                     } : t
                 ));
                 activeSendersRef.current.delete(fileId);
+
+                // Update favicon progress
+                if (window.setFaviconProgress) {
+                    window.setFaviconProgress(100);
+                    setTimeout(() => window.setFaviconProgress(0), 2000);
+                }
             };
 
             sender.onError = (error) => {
@@ -414,6 +442,11 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                         error: error.message
                     } : t
                 ));
+
+                // Update favicon progress
+                if (window.setFaviconProgress) {
+                    window.setFaviconProgress(0);
+                }
             };
 
             sender.onStateChange = (newState) => {
