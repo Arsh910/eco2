@@ -305,27 +305,27 @@ const EcoMeets = () => {
 
     // ── Render ──────────────────────────────────────────────────────────────
     return (
-        <div className="flex flex-col h-full bg-black text-white overflow-hidden">
+        <div className="flex flex-col h-full bg-[var(--bg-desktop)] text-[var(--text-primary)] overflow-hidden transition-colors duration-300">
             {/* Header */}
-            <div className="bg-gray-900 p-4 shadow-md flex justify-between items-center z-10">
-                <h1 className="text-xl font-bold text-green-400">
+            <div className="bg-[var(--bg-window)] p-4 shadow-sm flex justify-between items-center z-10 backdrop-blur-md border-b border-[var(--border-subtle)]">
+                <h1 className="text-xl font-bold text-[var(--text-accent)]">
                     EcoMeets{" "}
-                    <span className="text-xs text-gray-500 font-normal">
+                    <span className="text-xs text-[var(--text-secondary)] font-normal">
                         Random Chat
                     </span>
                 </h1>
                 <div className="flex items-center gap-4">
-                    <span className="text-xs px-2 py-1 bg-gray-800 rounded border border-gray-700">
+                    <span className="text-xs px-2 py-1 bg-[var(--bg-secondary)] rounded border border-[var(--border-subtle)]">
                         {onlineCount} Online
                     </span>
-                    <div className="text-sm font-medium text-blue-400">{status}</div>
+                    <div className="text-sm font-medium text-[var(--accent-primary)]">{status}</div>
                 </div>
             </div>
 
             {/* Video Area */}
-            <div className="flex-1 relative flex flex-col md:flex-row items-center justify-center bg-gray-950 p-4 gap-4">
+            <div className="flex-1 relative flex flex-col md:flex-row items-center justify-center bg-[var(--bg-desktop)] p-4 gap-4 transition-colors duration-300">
                 {/* Remote */}
-                <div className="relative w-full md:w-1/2 aspect-video bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 shadow-xl">
+                <div className="relative w-full md:w-1/2 aspect-video bg-[var(--bg-secondary)] rounded-2xl overflow-hidden border border-[var(--border-subtle)] shadow-xl transition-colors duration-300">
                     <video
                         ref={remoteRef}
                         autoPlay
@@ -335,39 +335,39 @@ const EcoMeets = () => {
                     />
                     {/* Remote video off overlay */}
                     {inCall && remoteVideoOff && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                            <VideoOff className="w-16 h-16 text-gray-600" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-secondary)]">
+                            <VideoOff className="w-16 h-16 text-[var(--text-secondary)]" />
                         </div>
                     )}
                     {/* Remote audio muted indicator */}
                     {inCall && remoteAudioMuted && (
-                        <div className="absolute top-4 right-4 bg-red-500/20 p-2 rounded-full">
-                            <MicOff className="w-5 h-5 text-red-400" />
+                        <div className="absolute top-4 right-4 bg-red-500/80 p-2 rounded-full backdrop-blur-sm">
+                            <MicOff className="w-5 h-5 text-white" />
                         </div>
                     )}
                     {!inCall && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-dock)] backdrop-blur-sm">
                             {searching ? (
                                 <div className="flex flex-col items-center gap-4">
-                                    <Loader className="w-12 h-12 text-blue-500 animate-spin" />
-                                    <span className="text-gray-300">
+                                    <Loader className="w-12 h-12 text-[var(--accent-primary)] animate-spin" />
+                                    <span className="text-[var(--text-secondary)]">
                                         Waiting for partner…
                                     </span>
                                 </div>
                             ) : (
-                                <div className="text-gray-500">
+                                <div className="text-[var(--text-secondary)]">
                                     Press Start to find someone
                                 </div>
                             )}
                         </div>
                     )}
-                    <span className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-full text-sm">
+                    <span className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-full text-sm text-white">
                         Remote
                     </span>
                 </div>
 
                 {/* Local */}
-                <div className="relative w-full md:w-1/2 aspect-video bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 shadow-xl">
+                <div className="relative w-full md:w-1/2 aspect-video bg-[var(--bg-secondary)] rounded-2xl overflow-hidden border border-[var(--border-subtle)] shadow-xl transition-colors duration-300">
                     <video
                         ref={localRef}
                         autoPlay
@@ -377,64 +377,66 @@ const EcoMeets = () => {
                         style={{ transform: "scaleX(-1)" }}
                     />
                     {vidOff && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                            <VideoOff className="w-16 h-16 text-gray-600" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-secondary)]">
+                            <VideoOff className="w-16 h-16 text-[var(--text-secondary)]" />
                         </div>
                     )}
-                    <span className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-full text-sm">
+                    <span className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-full text-sm text-white">
                         You
                     </span>
                 </div>
-            </div>
 
-            {/* Controls */}
-            <div className="bg-gray-900 p-6 flex justify-center items-center gap-6 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-                {!inCall ? (
-                    searching ? (
+                {/* Controls Overlay */}
+                <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-6 z-50">
+                    <div className="bg-[var(--bg-glass)] backdrop-blur-md border border-[var(--border-highlight)] rounded-full px-3 py-3 flex items-center gap-4 shadow-2xl">
+                        {!inCall ? (
+                            searching ? (
+                                <button
+                                    onClick={cancelSearch}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-2 py-2 rounded-full font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+                                >
+                                    <PhoneOff className="w-5 h-5" /> Cancel
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={findMatch}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-2 py-2 rounded-full font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+                                >
+                                    <PhoneCall className="w-5 h-5" />
+                                </button>
+                            )
+                        ) : (
+                            <button
+                                onClick={() => handleEndCall(true)}
+                                className="bg-red-600 hover:bg-red-700 text-white px-2 py-2 rounded-full font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+                            >
+                                <PhoneOff className="w-5 h-5" /> End Call
+                            </button>
+                        )}
+
+                        <div className="w-px h-8 bg-[var(--border-highlight)] mx-2" />
+
                         <button
-                            onClick={cancelSearch}
-                            className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+                            onClick={toggleMute}
+                            className={`p-3 rounded-full transition ${muted
+                                ? "bg-red-500 text-white hover:bg-red-600"
+                                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-dock)]"
+                                }`}
                         >
-                            <PhoneOff className="w-5 h-5" /> Cancel
+                            {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
                         </button>
-                    ) : (
+
                         <button
-                            onClick={findMatch}
-                            className="bg-green-600 hover:bg-green-700 text-white px-10 py-3 rounded-full font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+                            onClick={toggleVideo}
+                            className={`p-3 rounded-full transition ${vidOff
+                                ? "bg-red-500 text-white hover:bg-red-600"
+                                : "bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-dock)]"
+                                }`}
                         >
-                            <PhoneCall className="w-5 h-5" /> Start
+                            {vidOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
                         </button>
-                    )
-                ) : (
-                    <button
-                        onClick={() => handleEndCall(true)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-10 py-3 rounded-full font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2"
-                    >
-                        <PhoneOff className="w-5 h-5" /> End Call
-                    </button>
-                )}
-
-                <div className="w-px h-10 bg-gray-700 mx-2" />
-
-                <button
-                    onClick={toggleMute}
-                    className={`p-4 rounded-full transition ${muted
-                        ? "bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                        : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                        }`}
-                >
-                    {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-                </button>
-
-                <button
-                    onClick={toggleVideo}
-                    className={`p-4 rounded-full transition ${vidOff
-                        ? "bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                        : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                        }`}
-                >
-                    {vidOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
-                </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
