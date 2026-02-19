@@ -14,15 +14,10 @@ export const useView = () => {
 
 export const ViewProvider = ({ children }) => {
     const { isAuthenticated, token } = useAuth();
-    const [isProMode, setIsProMode] = useState(false);
     const [theme, setTheme] = useState('dark');
 
     // Load view preference state from localStorage on mount
     useEffect(() => {
-        const savedView = localStorage.getItem('eco2_view_preference');
-        if (savedView) {
-            setIsProMode(JSON.parse(savedView));
-        }
         const savedTheme = localStorage.getItem('eco2_theme_preference');
         if (savedTheme) {
             setTheme(savedTheme);
@@ -31,14 +26,6 @@ export const ViewProvider = ({ children }) => {
             document.documentElement.classList.add('dark');
         }
     }, []);
-
-    const toggleView = () => {
-        setIsProMode(prev => {
-            const newState = !prev;
-            localStorage.setItem('eco2_view_preference', JSON.stringify(newState));
-            return newState;
-        });
-    };
 
     const toggleTheme = () => {
         setTheme(prev => {
@@ -102,8 +89,6 @@ export const ViewProvider = ({ children }) => {
     };
 
     const value = {
-        isProMode,
-        toggleView,
         theme,
         toggleTheme,
         activeTransferTab,

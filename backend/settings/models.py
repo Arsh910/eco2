@@ -20,3 +20,29 @@ class BackgroundSetting(models.Model):
 
     def __str__(self):
         return f"{self.user.username}"
+
+def feedback_upload_path(instance, filename):
+    # Determine folder based on feedback type
+    folder = 'bugs' if instance.type == 'bug' else 'feedback'
+    return f'{folder}/{filename}'
+
+class Feedback(models.Model):
+    FEEDBACK_TYPES = [
+        ('bug', 'Bug Report'),
+        ('idea', 'App Idea'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='feedbacks'
+    )
+    type = models.CharField(max_length=10, choices=FEEDBACK_TYPES, default='bug')
+    description = models.TextField()
+    image = models.ImageField(upload_to=feedback_upload_path, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.type} - {self.user.username if self.user else 'Guest'} - {self.created_at.strftime('%Y-%m-%d')}"

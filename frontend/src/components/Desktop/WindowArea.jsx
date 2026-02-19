@@ -4,6 +4,7 @@ import DataTransfer from '../../pages/eco2apps/connect/DataTransfer';
 import Terminal from '../../pages/eco2apps/terminal/Terminal';
 import Settings from '../../pages/eco2apps/settings/Settings';
 import EcoMeets from '../../pages/eco2apps/ecomeets/EcoMeets';
+import EcoStore from '../../pages/eco2apps/ecostore/EcoStore';
 
 // Mapping of app IDs to components
 const AppComponents = {
@@ -11,6 +12,7 @@ const AppComponents = {
     ecomeets: EcoMeets,
     terminal: Terminal,
     settings: Settings,
+    ecostore: EcoStore,
 };
 
 const WindowArea = ({ app, onClose }) => {

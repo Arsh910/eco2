@@ -1,14 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, Shield, Zap, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { useView } from '../../../context/ViewContext';
 import DisplaySettings from './sections/DisplaySettings';
+import FeedbackModal from './components/FeedbackModal';
 
 export default function Settings() {
     const { user, guestName, mode, logout } = useAuth();
-    const { isProMode, toggleView } = useView();
     const navigate = useNavigate();
+
+    // Feedback Modal State
+    const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, type: 'bug' });
+
+    const openFeedbackModal = (type) => {
+        setFeedbackModal({ isOpen: true, type });
+    };
+
+    const closeFeedbackModal = () => {
+        setFeedbackModal({ ...feedbackModal, isOpen: false });
+    };
 
     const isGuest = mode === 'guest';
 
@@ -75,43 +85,45 @@ export default function Settings() {
             {/* Display Settings - New Modular Section */}
             <DisplaySettings isGuest={isGuest} />
 
-            {/* Preferences Section */}
-            <div className="mb-[5px] bg-[var(--bg-window)] backdrop-blur-md rounded-2xl p-6 border border-[var(--border-subtle)] shadow-lg transition-colors duration-300">
-                <h2 className="text-xs font-semibold text-[var(--accent-primary)] uppercase tracking-wider mb-6">Preferences</h2>
+            {/* Preferences Section - REMOVED */}
 
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                        <div className={`p-3 rounded-xl transition-colors duration-300 ${isProMode ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] ring-1 ring-[var(--accent-primary)]/30' : 'bg-[var(--bg-glass)] text-[var(--text-secondary)]'}`}>
-                            <Zap className="w-6 h-6" />
+            {/* Help & Feedback Section */}
+            <div className="bg-[var(--bg-window)] backdrop-blur-md rounded-2xl p-6 border border-[var(--border-subtle)] shadow-lg transition-colors duration-300">
+                <h2 className="text-xs font-semibold text-[var(--accent-primary)] uppercase tracking-wider mb-6">Help & Feedback</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                        onClick={() => openFeedbackModal('bug')}
+                        className="flex items-center p-4 bg-[var(--bg-secondary)] hover:bg-[var(--accent-primary)]/10 border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] rounded-xl transition-all group text-left"
+                    >
+                        <div className="p-3 bg-[var(--bg-glass)] rounded-full group-hover:scale-110 transition-transform mr-4">
+                            <Shield className="w-6 h-6 text-red-400" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-[var(--text-primary)] flex items-center gap-3">
-                                Pro Mode
-                                {isProMode && <span className="text-[10px] font-bold px-2 py-0.5 bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] rounded-full uppercase tracking-wider border border-[var(--accent-primary)]/20">ACTIVE</span>}
-                            </h3>
-                            <p className="text-sm text-[var(--text-secondary)] mt-1">
-                                Unlock advanced features and tools
-                            </p>
+                            <h3 className="font-semibold text-[var(--text-primary)]">Report a Bug</h3>
+                            <p className="text-sm text-[var(--text-secondary)]">Found an issue? Let us know.</p>
                         </div>
-                    </div>
+                    </button>
 
-                    <div className="flex items-center space-x-4">
-                        {isGuest && (
-                            <span className="text-xs text-[var(--text-secondary)] italic">Login required</span>
-                        )}
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={isProMode}
-                                onChange={toggleView}
-                                disabled={isGuest}
-                            />
-                            <div className="w-14 h-7 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--accent-primary)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[var(--accent-primary)] opacity-100 disabled:opacity-50 disabled:cursor-not-allowed border border-[var(--border-subtle)]"></div>
-                        </label>
-                    </div>
+                    <button
+                        onClick={() => openFeedbackModal('idea')}
+                        className="flex items-center p-4 bg-[var(--bg-secondary)] hover:bg-[var(--accent-primary)]/10 border border-[var(--border-subtle)] hover:border-[var(--accent-primary)] rounded-xl transition-all group text-left"
+                    >
+                        <div className="p-3 bg-[var(--bg-glass)] rounded-full group-hover:scale-110 transition-transform mr-4">
+                            <Zap className="w-6 h-6 text-yellow-400" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-[var(--text-primary)]">Give App Ideas</h3>
+                            <p className="text-sm text-[var(--text-secondary)]">Share your feature requests.</p>
+                        </div>
+                    </button>
                 </div>
             </div>
+
+            <FeedbackModal
+                isOpen={feedbackModal.isOpen}
+                onClose={closeFeedbackModal}
+                type={feedbackModal.type}
+            />
         </div>
     );
 }

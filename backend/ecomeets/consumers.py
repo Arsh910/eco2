@@ -10,27 +10,6 @@ User = get_user_model()
 
 
 class EcoMeetsConsumer(WebsocketConsumer):
-    """
-    Architecture B — Server-Managed Matching + Role Assignment.
-
-    How it works
-    ============
-    1. Client connects → server accepts, waits for ``auth`` / ``auth_guest``.
-    2. Client sends ``{type: "find_match"}`` → server adds them to a FIFO queue.
-    3. When two users are in the queue, the server **pairs them instantly**:
-       - First user → role ``offerer``  (creates & sends SDP offer)
-       - Second user → role ``answerer`` (waits for offer, creates answer)
-       Both receive a ``matched`` message with their role and the other user's ID.
-    4. Signaling (offer, answer, ICE, endcall) is sent **only** to the matched
-       partner via their ``channel_name`` — no broadcasting.
-    5. Only **one RTCPeerConnection per user** is needed.
-
-    Scalability
-    ===========
-    • Matching is O(1): pop from a list.
-    • Signaling is point-to-point: no group broadcast overhead.
-    • The queue can be partitioned by region / preference for smarter matching.
-    """
 
     # Class-level matching queue (shared across all consumer instances)
     # In production, use Redis or Django cache for multi-process support

@@ -1,13 +1,3 @@
-/**
- * EcoMeets.jsx — Architecture B: Server-Managed Matching + Role Assignment.
- *
- * Key differences from v1 (dual-peer):
- *   • Only ONE RTCPeerConnection per user.
- *   • Server decides roles: "offerer" creates SDP, "answerer" waits.
- *   • Signaling is point-to-point (server routes directly to partner).
- *   • No sessionId needed — server handles matching.
- *   • No polling interval — matching is instant on server side.
- */
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import {

@@ -6,11 +6,10 @@ import FileTransferSection from "../../../components/connect/FileTransferSection
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import { useAuth } from "../../../context/AuthContext";
 import { useView } from "../../../context/ViewContext";
-import ProTransferExperience from "../../../components/connect/ProTransferExperience";
 import "./DataTransfer.css";
 
 export default function DataTransfer() {
-    const { isProMode, activeTransferTab, setActiveTransferTab } = useView();
+    const { activeTransferTab, setActiveTransferTab } = useView();
     const { logout, user, guestName, mode } = useAuth();
     const [roomCode, setRoomCode] = useState(null);
     const [joinCode, setJoinCode] = useState("");
@@ -55,10 +54,6 @@ export default function DataTransfer() {
         console.log("Created new room:", newCode);
         // TODO: Implement actual room creation logic
     };
-
-    if (isProMode) {
-        return <ProTransferExperience />;
-    }
 
     return (
         <div className="h-full flex flex-col overflow-y-auto lg:overflow-hidden bg-transparent rounded-2xl mobile-scroll">
