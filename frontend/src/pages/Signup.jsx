@@ -144,20 +144,20 @@ export default function Signup() {
                     transition-colors duration-300">
             <div className="w-full max-w-md">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] shadow-lg shadow-[var(--accent-primary)]/20">
-                        <UserPlus className="w-8 h-8 text-white" />
+                <div className="text-center mb-6">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] shadow-lg shadow-[var(--accent-primary)]/20">
+                        <UserPlus className="w-6 h-6 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+                    <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
                         Create Account
                     </h1>
-                    <p className="text-[var(--text-secondary)]">
+                    <p className="text-sm text-[var(--text-secondary)]">
                         Start sharing data in seconds
                     </p>
                 </div>
 
                 {/* Signup Form */}
-                <div className="glass-card rounded-2xl p-8 bg-[var(--bg-window)] border border-[var(--border-subtle)] shadow-xl">
+                <div className="glass-card rounded-2xl p-6 bg-[var(--bg-window)] border border-[var(--border-subtle)] shadow-xl">
                     {/* General Error Message */}
                     {errors.general && (
                         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -165,10 +165,10 @@ export default function Signup() {
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-3">
                         {/* Username Field */}
                         <div>
-                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                                 Username
                             </label>
                             <div className="relative">
@@ -182,7 +182,7 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="johndoe123"
-                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                                    className={`w-full pl-10 pr-4 py-2 bg-[var(--bg-glass)] 
                            border ${errors.username ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
                            text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
                            focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
@@ -196,7 +196,7 @@ export default function Signup() {
 
                         {/* Name Field */}
                         <div>
-                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                                 Full Name
                             </label>
                             <div className="relative">
@@ -210,7 +210,7 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="John Doe"
-                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                                    className={`w-full pl-10 pr-4 py-2 bg-[var(--bg-glass)] 
                            border ${errors.name ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
                            text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
                            focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
@@ -224,7 +224,7 @@ export default function Signup() {
 
                         {/* Email Field */}
                         <div>
-                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                                 Email Address
                             </label>
                             <div className="relative">
@@ -238,7 +238,7 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="you@example.com"
-                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                                    className={`w-full pl-10 pr-4 py-2 bg-[var(--bg-glass)] 
                            border ${errors.email ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
                            text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
                            focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
@@ -252,7 +252,7 @@ export default function Signup() {
 
                         {/* Password Field */}
                         <div>
-                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                                 Password
                             </label>
                             <div className="relative">
@@ -266,7 +266,7 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="••••••••"
-                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                                    className={`w-full pl-10 pr-4 py-2 bg-[var(--bg-glass)] 
                            border ${errors.password ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
                            text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
                            focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
@@ -280,7 +280,7 @@ export default function Signup() {
 
                         {/* Confirm Password Field */}
                         <div>
-                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                                 Confirm Password
                             </label>
                             <div className="relative">
@@ -294,7 +294,7 @@ export default function Signup() {
                                     onChange={handleChange}
                                     required
                                     placeholder="••••••••"
-                                    className={`w-full pl-10 pr-4 py-3 bg-[var(--bg-glass)] 
+                                    className={`w-full pl-10 pr-4 py-2 bg-[var(--bg-glass)] 
                            border ${errors.confirmPassword ? 'border-red-500' : 'border-[var(--border-subtle)]'} rounded-lg
                            text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50
                            focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]
@@ -310,7 +310,7 @@ export default function Signup() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full btn-primary flex items-center justify-center gap-2 py-3 mt-6 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white font-medium rounded-lg transition-colors border-none shadow-lg shadow-[var(--accent-primary)]/20"
+                            className="w-full btn-primary flex items-center justify-center gap-2 py-2.5 mt-4 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white font-medium rounded-lg transition-colors border-none shadow-lg shadow-[var(--accent-primary)]/20"
                         >
                             {loading ? (
                                 <>
@@ -327,7 +327,7 @@ export default function Signup() {
                     </form>
 
                     {/* Divider */}
-                    <div className="relative my-6">
+                    <div className="relative my-4">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-[var(--border-subtle)]"></div>
                         </div>
@@ -339,12 +339,12 @@ export default function Signup() {
                     </div>
 
                     {/* Google Login Button */}
-                    <div className="flex justify-center mb-6">
+                    <div className="flex justify-center mb-4">
                         <button
                             type="button"
                             onClick={() => googleLogin()}
                             disabled={googleLoading}
-                            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-glass)] hover:bg-[var(--text-secondary)]/10 transition-colors duration-200"
+                            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-glass)] hover:bg-[var(--text-secondary)]/10 transition-colors duration-200"
                         >
                             {googleLoading ? (
                                 <>
@@ -382,7 +382,7 @@ export default function Signup() {
                     <button
                         type="button"
                         onClick={handleGuestMode}
-                        className="w-full py-3 flex items-center justify-center gap-2 border border-[var(--border-subtle)] rounded-lg text-[var(--text-secondary)] hover:bg-[var(--text-secondary)]/10 transition-colors"
+                        className="w-full py-2.5 flex items-center justify-center gap-2 border border-[var(--border-subtle)] rounded-lg text-[var(--text-secondary)] hover:bg-[var(--text-secondary)]/10 transition-colors"
                     >
                         <User className="w-5 h-5" />
                         Continue as Guest
@@ -390,7 +390,7 @@ export default function Signup() {
                 </div>
 
                 {/* Login Link */}
-                <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
+                <p className="mt-4 text-center text-sm text-[var(--text-secondary)]">
                     Already have an account?{" "}
                     <Link to="/login" className="text-[var(--accent-primary)] font-medium hover:underline">
                         Sign in

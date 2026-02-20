@@ -3,9 +3,13 @@ import * as THREE from 'three';
 import GLOBE from 'vanta/src/vanta.globe';
 import NET from 'vanta/src/vanta.net';
 import { useView } from '../../context/ViewContext';
+import { useAuth } from '../../context/AuthContext';
+import AdOverlay from './adds/AdOverlay';
 
 const DesktopBackground = () => {
     const { backgroundSettings, theme } = useView();
+    const { mode } = useAuth();
+    const isGuest = mode === 'guest';
     const [vantaEffect, setVantaEffect] = useState(null);
     const containerRef = useRef(null);
 
@@ -91,7 +95,8 @@ const DesktopBackground = () => {
                         backgroundColor: backgroundColor,
                         points: 10.00,
                         maxDistance: 20.00,
-                        spacing: 15.00
+                        spacing: 15.00,
+                        vertexColors: false // Fix for THREE.Material warning
                     });
                 }
 
@@ -110,18 +115,24 @@ const DesktopBackground = () => {
     // Render Logic
     if (backgroundSettings.type === 'image') {
         return (
-            <div
-                className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-500"
-                style={{
-                    backgroundImage: `url(${backgroundSettings.value})`,
-                    backgroundColor: '#020617' // Fallback
-                }}
-            />
+            <>
+                <div
+                    className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-500"
+                    style={{
+                        backgroundImage: `url(${backgroundSettings.value})`,
+                        backgroundColor: '#020617' // Fallback
+                    }}
+                />
+                {isGuest && <AdOverlay />}
+            </>
         );
     }
 
     return (
-        <div ref={containerRef} className="absolute inset-0 z-0 bg-[#020617]" />
+        <>
+            <div ref={containerRef} className="absolute inset-0 z-0 bg-[#020617]" />
+            {isGuest && <AdOverlay />}
+        </>
     );
 };
 

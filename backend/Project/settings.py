@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'settings',
     'ecomeets',
+    'adds',
 ]
 
 MIDDLEWARE = [

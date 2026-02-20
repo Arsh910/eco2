@@ -8,6 +8,9 @@ import { useAuth } from "../../../context/AuthContext";
 import { useView } from "../../../context/ViewContext";
 import "./DataTransfer.css";
 
+import AppTour from "../../../components/common/AppTour";
+import { HelpCircle } from "lucide-react";
+
 export default function DataTransfer() {
     const { activeTransferTab, setActiveTransferTab } = useView();
     const { logout, user, guestName, mode } = useAuth();
@@ -15,6 +18,42 @@ export default function DataTransfer() {
     const [joinCode, setJoinCode] = useState("");
     const [codeCopied, setCodeCopied] = useState(false);
     const [qrLoading, setQrLoading] = useState(true);
+    const [runTour, setRunTour] = useState(true);
+
+    const tourSteps = [
+        {
+            target: 'body',
+            content: 'Welcome to Data Transfer! Share text and files instantly with anyone on your network.',
+            placement: 'center',
+            disableBeacon: true,
+        },
+        {
+            target: '[data-tour="room-code"]',
+            content: 'This is your unique Room Code. Share it with others so they can join you.',
+        },
+        {
+            target: '[data-tour="join-room"]',
+            content: 'Enter a code here to join an existing room created by someone else.',
+        },
+        {
+            target: '[data-tour="create-join-btn"]',
+            content: 'Or simply click "Create" to generate a new room code instantly.',
+        },
+        {
+            target: '[data-tour="text-transfer"]',
+            content: 'Send messages and text snippets in real-time here.',
+        },
+        {
+            target: '[data-tour="file-transfer"]',
+            content: 'Drag and drop files here to share them securely with connected users.',
+        },
+    ];
+
+    const handleRestartTour = () => {
+        setRunTour(true);
+        // Force reset seen state for manual restart
+        localStorage.removeItem('eco2_tour_datatransfer');
+    };
 
     useEffect(() => {
         if (roomCode) {
@@ -34,21 +73,6 @@ export default function DataTransfer() {
     } = useWebSocket(roomCode);
 
     const handleCopyCode = async () => {
-        await navigator.clipboard.writeText(roomCode);
-        setCodeCopied(true);
-        setTimeout(() => setCodeCopied(false), 2000);
-    };
-
-    const handleJoinRoom = () => {
-        if (joinCode.trim()) {
-            setRoomCode(joinCode.toUpperCase());
-            setJoinCode("");
-            console.log("Joined room:", joinCode);
-            // TODO: Implement actual room joining logic
-        }
-    };
-
-    const handleCreateNewRoom = () => {
         const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         setRoomCode(newCode);
         console.log("Created new room:", newCode);
@@ -76,9 +100,21 @@ export default function DataTransfer() {
                             peerCount={connectedUsers.length}
                         />
 
-                        {/* Logout button removed from here as per previous request */}
+                        <button
+                            onClick={handleRestartTour}
+                            className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--bg-secondary)] rounded-full transition-colors"
+                            title="Show Tutorial"
+                        >
+                            <HelpCircle className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
+
+                <AppTour
+                    steps={tourSteps}
+                    run={runTour}
+                    tourKey="datatransfer"
+                />
 
                 {/* Connected Users */}
                 {roomCode && connectedUsers.length > 0 && (
@@ -116,7 +152,7 @@ export default function DataTransfer() {
                             <div className="flex flex-col xl:flex-row gap-4 items-stretch">
                                 <div className="flex-1 w-full flex items-stretch gap-2">
                                     <div className="flex-1 flex items-center gap-3 px-4 py-3 bg-[var(--bg-secondary)] 
-                                                      border-2 border-[var(--border-subtle)] rounded-xl">
+                                                      border-2 border-[var(--border-subtle)] rounded-xl" data-tour="room-code">
                                         <Link2 className="w-5 h-5 text-[var(--accent-primary)]" />
                                         <code className="text-xl font-bold tracking-wider text-[var(--accent-primary)]">
                                             {roomCode || '---'}
@@ -177,7 +213,7 @@ export default function DataTransfer() {
                         </div>
 
                         {/* Join Room */}
-                        <div className="flex flex-col h-full">
+                        <div className="flex flex-col h-full" data-tour="join-room">
                             <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
                                 Join a Room
                             </label>
@@ -198,6 +234,7 @@ export default function DataTransfer() {
                                 <button
                                     onClick={() => joinCode.trim() ? handleJoinRoom() : handleCreateNewRoom()}
                                     className="btn-primary px-5 py-3 whitespace-nowrap text-base h-auto flex items-center justify-center"
+                                    data-tour="create-join-btn"
                                 >
                                     {joinCode.trim() ? 'Join' : 'Create'}
                                 </button>
@@ -239,12 +276,12 @@ export default function DataTransfer() {
             <div className="flex-1 min-h-[600px] lg:min-h-0 flex flex-col lg:grid lg:grid-cols-2 gap-4 p-4 lg:p-4 pb-20 lg:pb-4">
 
                 {/* Text Transfer Section */}
-                <div className={`${activeTransferTab === 'text' ? 'flex' : 'hidden'} lg:flex glass-card rounded-2xl p-4 overflow-hidden flex-col h-full lg:h-auto`}>
+                <div className={`${activeTransferTab === 'text' ? 'flex' : 'hidden'} lg:flex glass-card rounded-2xl p-4 overflow-hidden flex-col h-full lg:h-auto`} data-tour="text-transfer">
                     <TextTransferSection messages={messages} sendText={sendText} />
                 </div>
 
                 {/* File Transfer Section */}
-                <div className={`${activeTransferTab === 'file' ? 'flex' : 'hidden'} lg:flex glass-card rounded-2xl p-4 overflow-hidden flex-col h-full lg:h-auto`}>
+                <div className={`${activeTransferTab === 'file' ? 'flex' : 'hidden'} lg:flex glass-card rounded-2xl p-4 overflow-hidden flex-col h-full lg:h-auto`} data-tour="file-transfer">
 
                     <FileTransferSection
                         wsRef={{ current: wsRef }}
