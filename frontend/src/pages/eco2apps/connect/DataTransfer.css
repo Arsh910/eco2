@@ -1,0 +1,391 @@
+/* Data Transfer Platform Styles */
+
+:root {
+    /* Transfer-specific gradients - Startup Theme */
+    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    /* Indigo-500 to Violet-500 */
+    --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --gradient-send: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    --gradient-receive: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+
+    /* Colors */
+    --color-sent: #3b82f6;
+    --color-received: #8b5cf6;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+
+    /* Shadows */
+    --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.2);
+    --shadow-card-hover: 0 12px 48px rgba(99, 102, 241, 0.15);
+    /* Indigo glow */
+    --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+.dark {
+    /* Cosmic Theme adjustments if needed, but root serves as default now */
+    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    --color-sent: #06b6d4;
+    /* Cyan-500 */
+    --color-received: #d946ef;
+    /* Fuchsia-500 */
+}
+
+/* Glassmorphism base - Startup Professional */
+/* Glassmorphism base - Startup Professional */
+.glass-card {
+    background: var(--bg-glass);
+    /* Light/Dark variable */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .glass-card {
+    /* Rely on var(--bg-glass) defined in index.css for correct mode */
+    border-color: var(--border-subtle);
+}
+
+.glass-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.3);
+    /* Indigo border on hover */
+}
+
+/* Transfer animations */
+@keyframes sendAnimation {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes receiveAnimation {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes borderPulse {
+
+    0%,
+    100% {
+        border-color: rgba(102, 126, 234, 0.5);
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4);
+    }
+
+    50% {
+        border-color: rgba(102, 126, 234, 0.8);
+        box-shadow: 0 0 0 8px rgba(102, 126, 234, 0);
+    }
+}
+
+@keyframes progressFlow {
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        background-position: 40px 0;
+    }
+}
+
+/* Transfer card animations */
+.transfer-card-enter {
+    animation: sendAnimation 0.4s ease-out forwards;
+}
+
+.transfer-card-sent {
+    border-left: 3px solid var(--color-sent);
+}
+
+.transfer-card-received {
+    border-left: 3px solid var(--color-received);
+}
+
+/* Drag and drop zone */
+.drop-zone {
+    position: relative;
+    border: 2px dashed rgba(148, 163, 184, 0.4);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+    background: rgba(248, 250, 252, 0.5);
+}
+
+.dark .drop-zone {
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+.drop-zone:hover {
+    border-color: rgba(102, 126, 234, 0.6);
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.drop-zone.drag-over {
+    animation: borderPulse 1.5s ease infinite;
+    background: rgba(102, 126, 234, 0.1);
+    transform: scale(1.02);
+}
+
+.dark .drop-zone.drag-over {
+    background: rgba(102, 126, 234, 0.15);
+}
+
+/* Progress bar */
+.progress-bar {
+    position: relative;
+    height: 6px;
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    background-size: 40px 40px;
+    background-image: linear-gradient(-45deg,
+            rgba(255, 255, 255, 0.2) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.2) 50%,
+            rgba(255, 255, 255, 0.2) 75%,
+            transparent 75%,
+            transparent);
+    animation: progressFlow 1s linear infinite;
+}
+
+/* Connection status indicator */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+}
+
+.status-connected .status-dot {
+    background: var(--color-success);
+    box-shadow: 0 0 8px var(--color-success);
+}
+
+.status-disconnected .status-dot {
+    background: var(--color-error);
+    animation: none;
+}
+
+.status-connecting .status-dot {
+    background: var(--color-warning);
+}
+
+/* File preview card */
+.file-preview-card {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    transition: all 0.2s ease;
+}
+
+.dark .file-preview-card {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(148, 163, 184, 0.1);
+}
+
+.file-preview-card:hover {
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.file-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--gradient-primary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+/* Text transfer section */
+.text-input-area {
+    resize: vertical;
+    min-height: 120px;
+    transition: all 0.2s ease;
+}
+
+.text-input-area:focus {
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Action buttons */
+.btn-primary {
+    background: var(--gradient-primary);
+    color: white;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: rgba(148, 163, 184, 0.1);
+    color: #334155;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    cursor: pointer;
+}
+
+.dark .btn-secondary {
+    background: rgba(148, 163, 184, 0.1);
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(148, 163, 184, 0.2);
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+/* Scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.1);
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
+}
+
+/* Spotlight animation - Unique chat feature */
+@keyframes spotlight {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes spotlightGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 30px 10px rgba(250, 204, 21, 0);
+    }
+}
+
+.spotlight-message {
+    animation: spotlight 0.6s ease-in-out;
+}
+
+.spotlight-message>div>div {
+    animation: spotlightGlow 1.5s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .glass-card {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+}
+
+/* Custom Mobile Scrollbar */
+.mobile-scroll::-webkit-scrollbar {
+    width: 4px;
+    /* Thin */
+    height: 4px;
+}
+
+.mobile-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mobile-scroll::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.5);
+    /* Theme Blue/Purple */
+    border-radius: 10px;
+}
+
+.dark .mobile-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 42, 109, 0.5);
+    /* Theme Pink */
+}
