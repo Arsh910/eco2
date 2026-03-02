@@ -45,9 +45,26 @@ export default function DataTransfer() {
     } = useWebSocket(roomCode);
 
     const handleCopyCode = async () => {
+        if (roomCode) {
+            try {
+                await navigator.clipboard.writeText(roomCode);
+                setCodeCopied(true);
+                setTimeout(() => setCodeCopied(false), 2000);
+            } catch (err) {
+                console.error("Failed to copy code: ", err);
+            }
+        }
+    };
+
+    const handleJoinRoom = () => {
+        if (joinCode.trim()) {
+            setRoomCode(joinCode.trim().toUpperCase());
+        }
+    };
+
+    const handleCreateNewRoom = () => {
         const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         setRoomCode(newCode);
-        //console.log("Created new room:", newCode);
     };
 
     return (

@@ -4,8 +4,7 @@ import GLOBE from 'vanta/src/vanta.globe';
 import NET from 'vanta/src/vanta.net';
 import { useView } from '../../context/ViewContext';
 import { useAuth } from '../../context/AuthContext';
-import Eco2Scene from './ads/Eco2Scene';
-import AdSenseLandingPage from './ads/AdSenseLandingPage';
+import PromoLandingPage from './promotions/PromoLandingPage';
 
 const DesktopBackground = () => {
     const { backgroundSettings, theme } = useView();
@@ -108,7 +107,7 @@ const DesktopBackground = () => {
     if (backgroundSettings.type === 'eco2model') {
         // [GAA Mode]
         // return <Eco2Scene />;
-        return <AdSenseLandingPage />;
+        return <PromoLandingPage />;
     }
 
     if (backgroundSettings.type === 'image') {

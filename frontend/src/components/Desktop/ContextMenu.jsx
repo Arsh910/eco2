@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { RefreshCcw, FolderPlus, Monitor, Power } from 'lucide-react';
 
 const ContextMenu = ({ isOpen, position, onClose, onAction }) => {
