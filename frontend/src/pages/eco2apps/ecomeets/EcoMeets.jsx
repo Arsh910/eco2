@@ -389,7 +389,7 @@ const EcoMeets = () => {
                                 onClick={() => handleEndCall(true)}
                                 className="bg-red-600 hover:bg-red-700 text-white px-2 py-2 rounded-full font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2"
                             >
-                                <PhoneOff className="w-5 h-5" /> End Call
+                                <PhoneOff className="w-5 h-5" />
                             </button>
                         )}
 
