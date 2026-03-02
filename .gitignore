@@ -1,0 +1,10 @@
+env/
+.env
+node_modules/
+ssh/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+db.sqlite3
+

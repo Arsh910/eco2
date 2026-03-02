@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme {
+    --font-sans: 'Outfit', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: light;
+    --bg-desktop: #F5F5DC;
+    --bg-window: rgba(255, 255, 255, 0.85);
+    --bg-secondary: rgba(240, 240, 240, 0.8);
+    --bg-dock: rgba(255, 255, 255, 0.7);
+    --bg-glass: rgba(255, 255, 255, 0.6);
+    --text-primary: #1a1a1a;
+    --text-secondary: #4b5563;
+    --text-accent: #78A02E;
+    --border-subtle: rgba(120, 160, 46, 0.2);
+    --border-highlight: rgba(120, 160, 46, 0.4);
+    --accent-primary: #78A02E;
+    --accent-secondary: #F29F05;
+    --accent-glow: rgba(120, 160, 46, 0.5);
+    --selection-bg: #78A02E;
+    --selection-text: #ffffff;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+:root.dark {
+    color-scheme: dark;
+    --bg-desktop: #020617;
+    --bg-window: rgba(11, 17, 32, 0.95);
+    --bg-secondary: rgba(30, 41, 59, 1);
+    --bg-dock: rgba(11, 17, 32, 0.6);
+    --bg-glass: rgba(15, 23, 42, 0.6);
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --text-secondary: #94a3b8;
+    --text-accent: #8b5cf6;
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --border-highlight: rgba(255, 255, 255, 0.2);
+    --accent-primary: #6366f1;
+    --accent-secondary: #8b5cf6;
+    --accent-glow: rgba(99, 102, 241, 0.5);
+    --selection-bg: #6366f1;
+    --selection-text: #ffffff;
+}
+
+::selection {
+    background: var(--selection-bg);
+    color: var(--selection-text);
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: var(--bg-desktop);
+    color: var(--text-primary);
+    overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.6);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+}
