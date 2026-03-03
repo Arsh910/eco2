@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import environ
 from pathlib import Path
 import os
+import ssl
 from datetime import timedelta
 
 import sys
@@ -102,14 +103,28 @@ ASGI_APPLICATION = 'Project.asgi.application'
 #     },
 # }
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [env('REDIS_URL')],
+REDIS_URL = env('REDIS_URL', default='redis://127.0.0.1:6379/0')
+
+if REDIS_URL.startswith('rediss://'):
+    # External Redis with SSL (e.g. Upstash)
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [{"address": REDIS_URL, "ssl_cert_reqs": ssl.CERT_NONE}],
+            },
         },
-    },
-}
+    }
+else:
+    # Local Redis without SSL
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
+        },
+    }
 
 
 # Database
