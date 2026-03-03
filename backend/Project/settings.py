@@ -106,12 +106,15 @@ ASGI_APPLICATION = 'Project.asgi.application'
 REDIS_URL = env('REDIS_URL', default='redis://127.0.0.1:6379/0')
 
 if REDIS_URL.startswith('rediss://'):
-    # External Redis with SSL (e.g. Upstash)
+    # External Redis with SSL (e.g. Upstash) - use ssl context object for redis-py 4.x compatibility
+    _ssl_ctx = ssl.create_default_context()
+    _ssl_ctx.check_hostname = False
+    _ssl_ctx.verify_mode = ssl.CERT_NONE
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
-                "hosts": [{"address": REDIS_URL, "ssl_cert_reqs": ssl.CERT_NONE}],
+                "hosts": [{"address": REDIS_URL, "ssl": _ssl_ctx}],
             },
         },
     }
