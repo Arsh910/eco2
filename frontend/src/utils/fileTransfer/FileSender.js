@@ -114,6 +114,17 @@ export class FileSender {
 
             await this.handleBackpressure();
             const checkpointIndex = getCheckpointIndex(chunkIndex, CHECKPOINT_CHUNKS);
+
+            // End-to-end flow control: max 2 unacknowledged checkpoints (16MB) in flight
+            while (
+                checkpointIndex > this.lastAckedCheckpoint + 2 &&
+                !this.isPaused &&
+                this.state === TransferState.TRANSFERRING &&
+                this.ws.readyState === WebSocket.OPEN
+            ) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
             if (checkpointIndex <= this.lastAckedCheckpoint) {
                 //console.log('[FileSender] Skipping already-acked chunk:', chunkIndex);
                 continue;
