@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MessageType } from '../utils/fileTransfer/constants.js';
 
@@ -145,7 +145,7 @@ export const useWebSocket = (roomCode) => {
                                 break;
 
                             default:
-                                //console.log('Unknown message type:', data);
+                            //console.log('Unknown message type:', data);
                         }
                     } catch (error) {
                         console.error('Error parsing WebSocket message:', error);
@@ -209,9 +209,9 @@ export const useWebSocket = (roomCode) => {
         return false;
     };
 
-    const setFileTransferCallbacks = (callbacks) => {
+    const setFileTransferCallbacks = useCallback((callbacks) => {
         fileTransferCallbacksRef.current = { ...fileTransferCallbacksRef.current, ...callbacks };
-    };
+    }, []);
 
     const sendBinary = (arrayBuffer) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -229,7 +229,7 @@ export const useWebSocket = (roomCode) => {
         sendFile,
         sendBinary,
         setFileTransferCallbacks,
-        wsRef: wsRef.current,
+        wsRef,
         isAuthenticated
     };
 };

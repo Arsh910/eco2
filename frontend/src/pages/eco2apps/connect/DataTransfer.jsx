@@ -267,7 +267,7 @@ export default function DataTransfer() {
                 <div className={`${activeTransferTab === 'file' ? 'flex' : 'hidden'} lg:flex glass-card rounded-2xl p-4 overflow-hidden flex-col h-full lg:h-auto`} data-tour="file-transfer">
 
                     <FileTransferSection
-                        wsRef={{ current: wsRef }}
+                        wsRef={wsRef}
                         setFileTransferCallbacks={setFileTransferCallbacks}
                     />
                 </div>
