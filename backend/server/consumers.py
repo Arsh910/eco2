@@ -41,6 +41,8 @@ class ServerConsumer(AsyncWebsocketConsumer):
         self.room_id = self.scope['url_route']['kwargs'].get('connection')
         self.user = None
         self.guest_user = None
+
+
         self.is_authenticated_context = False
         self._relay_chunk_counter = 0  # For flow-control pacing
 
@@ -332,3 +334,68 @@ class ServerConsumer(AsyncWebsocketConsumer):
 
     async def send_error(self, message):
         await self.send_json({'error': message})
+
+# ---------------------------------------------------------------------------
+# Adaptive Buffer Pool Consumers (Phase 3)
+# ---------------------------------------------------------------------------
+from server.relay.session_manager import session_manager
+from server.relay.handlers.sender_handler import SenderHandler
+from server.relay.handlers.receiver_handler import ReceiverHandler
+
+class SenderConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.transfer_id = self.scope['url_route']['kwargs']['transfer_id']
+        
+        # Get or create session
+        self.session = await session_manager.get_session(self.transfer_id)
+        if not self.session:
+            self.session = await session_manager.create_session(self.transfer_id)
+        
+        await self.session.connect_sender(self)
+        await self.accept()
+
+    async def receive(self, bytes_data=None, text_data=None):
+        if bytes_data:
+            # Create handler if not exists
+            if not hasattr(self, 'handler'):
+                self.handler = SenderHandler(self.session.buffer, self)
+            
+            # Delegate to handler
+            await self.handler.handle_chunk(bytes_data)
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'session'):
+            await self.session.cleanup()
+            await session_manager.remove_session(self.transfer_id)
+
+
+class ReceiverConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.transfer_id = self.scope['url_route']['kwargs']['transfer_id']
+        
+        # Get or create session to prevent race condition if receiver connects first
+        self.session = await session_manager.get_session(self.transfer_id)
+        if not self.session:
+            self.session = await session_manager.create_session(self.transfer_id)
+        
+        await self.session.connect_receiver(self)
+        await self.accept()
+        
+        # Start download task
+        self.handler = ReceiverHandler(self.session.buffer, self)
+        self.download_task = asyncio.create_task(self.handler.handle_download())
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'download_task'):
+            self.download_task.cancel()
+        
+        if hasattr(self, 'session'):
+            if self.session.sender_ws:
+                try:
+                    await self.session.sender_ws.send(text_data=json.dumps({
+                        'type': 'receiver_disconnected',
+                        'reason': 'connection_closed',
+                        'code': close_code
+                    }))
+                except Exception:
+                    pass

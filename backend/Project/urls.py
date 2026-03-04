@@ -16,9 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path , include
+from server.relay.views import TransferMonitorView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('admin/transfers/monitor/', TransferMonitorView.as_view(), name='transfer_monitor'),
     path("api/user/", include("user.urls")),
     path("api/settings/", include("settings.urls")),
     path("api/adds/", include("adds.urls")),
