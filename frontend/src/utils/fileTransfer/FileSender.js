@@ -98,24 +98,49 @@ export class FileSender {
     }
 
     async sendChunks(startChunk) {
+        if (!this.transferWs) {
+            const wsBase = this.ws.url.split('/ws/')[0] + '/ws';
+            const senderUrl = `${wsBase}/sender/${this.fileId}`;
+            this.transferWs = new WebSocket(senderUrl);
+
+            this.transferWs.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'pause') {
+                        this.isPaused = true;
+                        this.setState(TransferState.PAUSED); // Optional: add UI pausing
+                    } else if (msg.type === 'resume') {
+                        this.isPaused = false;
+                        this.setState(TransferState.TRANSFERRING);
+                    }
+                } catch (e) {
+                    // Ignore non-json or unexpected messages
+                }
+            };
+
+            await new Promise((resolve, reject) => {
+                this.transferWs.onopen = resolve;
+                this.transferWs.onerror = reject;
+            });
+        }
+
         this.chunkGenerator = this.chunkFile(startChunk);
 
         for await (const { chunkIndex, data } of this.chunkGenerator) {
-            if (this.isPaused) {
-                //console.log('[FileSender] Transfer paused at chunk:', chunkIndex);
-                return;
-            }
-
-            if (this.ws.readyState !== WebSocket.OPEN) {
-                console.warn('[FileSender] WebSocket closed, stopping transfer');
+            if (this.state === TransferState.CANCELLED || this.ws.readyState !== WebSocket.OPEN) {
+                console.warn('[FileSender] WebSocket closed or cancelled, stopping transfer');
                 this.setState(TransferState.PAUSED);
                 return;
             }
 
-            await this.handleBackpressure();
+            // Backend Memory Backpressure (Adaptive Pause)
+            while (this.isPaused && this.state === TransferState.TRANSFERRING) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
             const checkpointIndex = getCheckpointIndex(chunkIndex, CHECKPOINT_CHUNKS);
 
-            // End-to-end flow control: max 2 unacknowledged checkpoints (16MB) in flight
+            // Peer-to-Peer Disk Persistence Flow Control (max 2 unacknowledged checkpoints in flight)
             while (
                 checkpointIndex > this.lastAckedCheckpoint + 2 &&
                 !this.isPaused &&
@@ -130,7 +155,10 @@ export class FileSender {
                 continue;
             }
             const binaryFrame = encodeBinaryChunk(checkpointIndex, chunkIndex, data);
-            this.ws.send(binaryFrame);
+
+            // Send payload via dedicated transfer relay
+            this.transferWs.send(binaryFrame);
+
             this.currentChunk = chunkIndex + 1;
             this.bytesTransferred += data.byteLength;
             if (this.onProgress) {

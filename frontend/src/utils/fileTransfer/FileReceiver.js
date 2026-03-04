@@ -82,6 +82,31 @@ export class FileReceiver {
             await this.initializeFileWrite();
         }
 
+        if (!this.transferWs) {
+            const wsBase = this.ws.url.split('/ws/')[0] + '/ws';
+            const receiverUrl = `${wsBase}/receiver/${this.fileId}`;
+            this.transferWs = new WebSocket(receiverUrl);
+            this.transferWs.binaryType = 'arraybuffer';
+
+            this.transferWs.onmessage = async (event) => {
+                if (event.data instanceof ArrayBuffer) {
+                    await this.handleBinaryChunk(event.data);
+                } else if (event.data instanceof Blob) {
+                    const buf = await event.data.arrayBuffer();
+                    await this.handleBinaryChunk(buf);
+                }
+            };
+
+            this.transferWs.onerror = (error) => {
+                console.error('[FileReceiver] transferWs error', error);
+            };
+
+            await new Promise((resolve, reject) => {
+                this.transferWs.onopen = resolve;
+                this.transferWs.onerror = reject;
+            });
+        }
+
         this.startTime = Date.now();
         this.setState(TransferState.TRANSFERRING);
 
