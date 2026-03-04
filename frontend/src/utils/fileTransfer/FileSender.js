@@ -114,6 +114,17 @@ export class FileSender {
 
             await this.handleBackpressure();
             const checkpointIndex = getCheckpointIndex(chunkIndex, CHECKPOINT_CHUNKS);
+
+            // Wait for receiver to ACK previous checkpoint
+            // Allow 1 checkpoint (e.g. 128 chunks = 8MB) exactly in-flight
+            while (checkpointIndex > this.lastAckedCheckpoint + 1) {
+                if (this.state !== TransferState.TRANSFERRING || this.isPaused) {
+                    break;
+                }
+                // Yield to event loop and wait for WS incoming message
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
             if (checkpointIndex <= this.lastAckedCheckpoint) {
                 //console.log('[FileSender] Skipping already-acked chunk:', chunkIndex);
                 continue;
