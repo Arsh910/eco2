@@ -1,5 +1,5 @@
-export const CHUNK_SIZE = 256 * 1024;       // 256KB — safe for Django Channels layer
-export const CHECKPOINT_CHUNKS = 128;       // checkpoint every 128 chunks = 32MB checkpoints
+export const CHUNK_SIZE = 64 * 1024;        // 64KB — optimal WebSocket frame size
+export const CHECKPOINT_CHUNKS = 128;       // checkpoint every 128 chunks = 8MB checkpoints
 export const CHECKPOINT_SIZE = 256 * 1024 * 1024;
 
 export const MessageType = {

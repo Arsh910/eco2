@@ -1,23 +1,49 @@
 import json
 from urllib.parse import parse_qs
-from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from asgiref.sync import sync_to_async
 
 User = get_user_model()
 
-class ServerConsumer(WebsocketConsumer):
-    def connect(self):
+# ---------------------------------------------------------------------------
+# Module-level room registry for direct binary relay (bypasses channel layer)
+# Structure: { room_id: { channel_name: consumer_instance } }
+# ---------------------------------------------------------------------------
+ROOM_REGISTRY: dict[str, dict[str, "ServerConsumer"]] = {}
+
+
+def _register(room_id: str, channel_name: str, consumer: "ServerConsumer"):
+    if room_id not in ROOM_REGISTRY:
+        ROOM_REGISTRY[room_id] = {}
+    ROOM_REGISTRY[room_id][channel_name] = consumer
+
+
+def _unregister(room_id: str, channel_name: str):
+    room = ROOM_REGISTRY.get(room_id)
+    if room:
+        room.pop(channel_name, None)
+        if not room:
+            ROOM_REGISTRY.pop(room_id, None)
+
+
+class ServerConsumer(AsyncWebsocketConsumer):
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    async def connect(self):
         self.room_id = self.scope['url_route']['kwargs'].get('connection')
         self.user = None
         self.guest_user = None
         self.is_authenticated_context = False
 
         if not self.room_id:
-            self.close()
+            await self.close()
             return
 
         query_string = self.scope.get('query_string', b'').decode()
@@ -28,78 +54,84 @@ class ServerConsumer(WebsocketConsumer):
             self.guest_user = guest_name
             self.display_name = f"{self.channel_name}_{guest_name}"
             self.is_authenticated_context = True
-            
+
             print(f"Guest Connection: {self.display_name} in room: {self.room_id}")
-            self.accept()
-            self._join_room()
+            await self.accept()
+            await self._join_room()
         else:
             print(f"Pending Auth Connection in room: {self.room_id}")
-            self.accept()
+            await self.accept()
 
-    def disconnect(self, close_code):
-        """
-        Handle WebSocket disconnection.
-        """
+    async def disconnect(self, close_code):
         try:
             if self.is_authenticated_context and hasattr(self, 'display_name') and self.display_name:
                 print(f"Disconnected: {self.display_name}")
-                self._update_user_list(add=False)
-                self._broadcast_user_list()
+                await sync_to_async(self._update_user_list)(add=False)
+                await self._broadcast_user_list()
 
-                async_to_sync(self.channel_layer.group_discard)(
+                await self.channel_layer.group_discard(
                     self.room_id,
                     self.channel_name
                 )
         except Exception as e:
             print(f"Error in disconnect: {e}")
+        finally:
+            # Always unregister from the binary relay registry
+            _unregister(self.room_id, self.channel_name)
 
-    def receive(self, text_data=None, bytes_data=None):
+    async def receive(self, text_data=None, bytes_data=None):
         """
         Handle incoming WebSocket messages.
-        Supports both text (JSON) and binary (file transfer chunks) messages.
-        If not authenticated, only accept 'auth' message.
+        Binary data (file chunks) is relayed DIRECTLY to room members,
+        bypassing the channel layer entirely — no queue limit, no overhead.
+        Text data (control messages) continues through the channel layer.
         """
         try:
+            # ----------------------------------------------------------------
+            # Binary path: direct in-memory relay — O(members), zero overhead
+            # ----------------------------------------------------------------
             if bytes_data:
                 if not self.is_authenticated_context:
-                    self.send_error("Authentication required")
-                    self.close()
+                    await self.send_error("Authentication required")
+                    await self.close()
                     return
-                
-                async_to_sync(self.channel_layer.group_send)(
-                    self.room_id,
-                    {
-                        'type': 'group_binary_handler',
-                        'bytes_data': bytes_data,
-                        'sender_channel_name': self.channel_name,
-                    }
-                )
+
+                room = ROOM_REGISTRY.get(self.room_id, {})
+                for channel_name, consumer in list(room.items()):
+                    if channel_name != self.channel_name:
+                        try:
+                            await consumer.send(bytes_data=bytes_data)
+                        except Exception as e:
+                            print(f"[BinaryRelay] Failed to relay to {channel_name}: {e}")
                 return
-            
+
+            # ----------------------------------------------------------------
+            # Text path: JSON control messages through channel layer
+            # ----------------------------------------------------------------
             if not text_data:
                 return
 
             data = json.loads(text_data)
             message_type = data.get('type') or data.get('typeof')
-      
+
             # Authentication Phase
             if not self.is_authenticated_context:
                 if message_type == 'auth':
                     token = data.get('token')
-                    if self._authenticate(token):
+                    if await self._authenticate(token):
                         self.is_authenticated_context = True
-                        self._join_room()
-                        self.send_json({
-                            'type': 'auth_success', 
+                        await self._join_room()
+                        await self.send_json({
+                            'type': 'auth_success',
                             'user': self._get_clean_username(self.display_name)
                         })
                     else:
-                        self.send_error("Authentication failed")
-                        self.close()
+                        await self.send_error("Authentication failed")
+                        await self.close()
                 else:
-                    self.send_error("Authentication required")
-                    self.close()
-                return 
+                    await self.send_error("Authentication required")
+                    await self.close()
+                return
 
             # Authenticated Phase
             if self.user is None:
@@ -111,110 +143,105 @@ class ServerConsumer(WebsocketConsumer):
                     payload = data.get('payload')
                     if isinstance(payload, dict) and payload.get('resumed'):
                         print("Blocking resume capability for guest in file-meta")
-                        self.send_error("Checkpoint usage is restricted to signed-in users.")
+                        await self.send_error("Checkpoint usage is restricted to signed-in users.")
                         return
 
             if message_type == 'copy':
-                self._handle_copy_message(data)
+                await self._handle_copy_message(data)
             else:
-                self._handle_generic_message(data)
+                await self._handle_generic_message(data)
 
         except json.JSONDecodeError:
-            self.send_error("Invalid JSON format")
+            await self.send_error("Invalid JSON format")
         except Exception as e:
             print(f"Error in receive: {e}")
-            self.send_error("Internal server error processing message")
+            await self.send_error("Internal server error processing message")
 
-    def _authenticate(self, token):
-        """
-        Verify JWT token and set self.user.
-        """
+    # ------------------------------------------------------------------
+    # Authentication
+    # ------------------------------------------------------------------
+
+    async def _authenticate(self, token):
         if not token:
             return False
-        
         try:
             access_token = AccessToken(token)
             user_id = access_token['user_id']
-            user = User.objects.get(id=user_id)
-            
+            user = await sync_to_async(User.objects.get)(id=user_id)
+
             self.user = user
             self.display_name = f"{self.channel_name}_{user.username}"
             print(f"User Authenticated: {self.display_name}")
             return True
-            
+
         except (TokenError, InvalidToken, User.DoesNotExist) as e:
             print(f"Auth Error: {e}")
             return False
 
-    def _join_room(self):
-        """
-        Add connection to group and broadcast presence.
-        """
-        async_to_sync(self.channel_layer.group_add)(
+    # ------------------------------------------------------------------
+    # Room management
+    # ------------------------------------------------------------------
+
+    async def _join_room(self):
+        # Register for direct binary relay
+        _register(self.room_id, self.channel_name, self)
+
+        # Register with channel layer for text/control messages
+        await self.channel_layer.group_add(
             self.room_id,
             self.channel_name
         )
-        self._update_user_list(add=True)
-        self._broadcast_user_list()
+        await sync_to_async(self._update_user_list)(add=True)
+        await self._broadcast_user_list()
 
-    def _handle_copy_message(self, data):
-        """
-        Handle 'copy' type messages.
-        """
-        copy_text = data.get('copy') or data.get('payload') 
+    # ------------------------------------------------------------------
+    # Message handlers
+    # ------------------------------------------------------------------
+
+    async def _handle_copy_message(self, data):
+        copy_text = data.get('copy') or data.get('payload')
         file_name = data.get('file_name')
-        
-        if copy_text:
-            print(f"Copy text: {copy_text}")
-        if file_name:
-            print(f"File: {file_name}")
 
         event = {
             'type': 'group_copy_handler',
-            'message_type': 'copy', 
+            'message_type': 'copy',
             'copy_text': copy_text,
             'file_data': data.get('file'),
             'file_name': file_name,
-            'f_user': self.display_name, 
-            'sender_channel_name': self.channel_name, 
+            'f_user': self.display_name,
+            'sender_channel_name': self.channel_name,
         }
 
-        async_to_sync(self.channel_layer.group_send)(
-            self.room_id,
-            event
-        )
+        await self.channel_layer.group_send(self.room_id, event)
 
         if file_name:
-            self.send_json({
+            await self.send_json({
                 'type': 'progress',
                 'sent': 'done'
             })
 
-    def _handle_generic_message(self, data):
-        """
-        Handle other message types.
-        """
+    async def _handle_generic_message(self, data):
         payload = data.get('payload') or data.get('disa')
         event = {
-            'type': 'group_generic_handler', 
+            'type': 'group_generic_handler',
             'message_type': data.get('type') or data.get('typeof'),
             'payload': payload,
-            'sender_channel_name': self.channel_name, 
+            'sender_channel_name': self.channel_name,
         }
-        async_to_sync(self.channel_layer.group_send)(
-            self.room_id,
-            event
-        )
+        await self.channel_layer.group_send(self.room_id, event)
 
-    # Group Event Handlers
-    def group_copy_handler(self, event):
+    # ------------------------------------------------------------------
+    # Channel layer event handlers (called by the channel layer)
+    # ------------------------------------------------------------------
+
+    async def group_copy_handler(self, event):
         if event.get('sender_channel_name') == self.channel_name:
             return
 
         raw_user = event.get('f_user')
         clean_user = self._get_clean_username(raw_user)
 
-        self.send_json({
+        await self.send_json({
             'type': event['message_type'],
             'copy_text': event['copy_text'],
             'file_data': event.get('file_data'),
@@ -222,64 +249,55 @@ class ServerConsumer(WebsocketConsumer):
             'f_user': clean_user
         })
 
-    def group_generic_handler(self, event):
+    async def group_generic_handler(self, event):
         if event.get('sender_channel_name') == self.channel_name:
             return
 
-        self.send_json({
+        await self.send_json({
             'type': event['message_type'],
             'payload': event.get('payload')
         })
-    
-    def group_binary_handler(self, event):
-        """
-        Forward binary data (file transfer chunks) to all group members except sender.
-        Binary data is sent unchanged - no encoding/decoding.
-        """
-        if event.get('sender_channel_name') == self.channel_name:
-            return
-        
-        self.send(bytes_data=event['bytes_data'])
 
-    def group_user_list_handler(self, event):
+    async def group_user_list_handler(self, event):
         raw_list_str = event['list']
         try:
             import ast
             raw_list = ast.literal_eval(raw_list_str)
-        except:
-             raw_list = []
+        except Exception:
+            raw_list = []
 
         clean_list = [self._get_clean_username(u) for u in raw_list]
-        
+
         raw_new_user = event.get('new_user')
         clean_new_user = self._get_clean_username(raw_new_user)
 
-        self.send_json({
-            'type': 'user_list_update', 
+        await self.send_json({
+            'type': 'user_list_update',
             'list': clean_list,
             'new_user': clean_new_user
         })
 
+    # ------------------------------------------------------------------
     # Helpers
-    def _get_clean_username(self, internal_name):
-        """
-        Strip the socket ID prefix from the internal unique name.
-        Format: "channel.name_username" -> "username"
-        """
-        if not internal_name:
-            return None
-        try:
-            parts = internal_name.split('_', 1)
-            if len(parts) > 1:
-                return parts[1]
-            return internal_name
-        except:
-            return internal_name
+    # ------------------------------------------------------------------
+
+    async def _broadcast_user_list(self):
+        key = f"group_users_{self.room_id}"
+        users_set = await sync_to_async(cache.get)(key, set())
+        user_list = list(users_set)
+
+        if user_list:
+            event = {
+                'type': 'group_user_list_handler',
+                'list': str(user_list),
+                'new_user': str(getattr(self, 'display_name', ''))
+            }
+            await self.channel_layer.group_send(self.room_id, event)
 
     def _update_user_list(self, add=True):
         key = f"group_users_{self.room_id}"
         users = cache.get(key, set())
-        
+
         if not isinstance(users, set):
             users = set(users)
 
@@ -287,27 +305,22 @@ class ServerConsumer(WebsocketConsumer):
             users.add(self.display_name)
         else:
             users.discard(self.display_name)
-        
+
         cache.set(key, users, timeout=None)
 
-    def _broadcast_user_list(self):
-        key = f"group_users_{self.room_id}"
-        users_set = cache.get(key, set())
-        user_list = list(users_set)
+    def _get_clean_username(self, internal_name):
+        if not internal_name:
+            return None
+        try:
+            parts = internal_name.split('_', 1)
+            if len(parts) > 1:
+                return parts[1]
+            return internal_name
+        except Exception:
+            return internal_name
 
-        if user_list:
-            event = {
-                'type': 'group_user_list_handler',
-                'list': str(user_list),
-                'new_user': str(self.display_name)
-            }
-            async_to_sync(self.channel_layer.group_send)(
-                self.room_id,
-                event
-            )
+    async def send_json(self, content):
+        await self.send(text_data=json.dumps(content))
 
-    def send_json(self, content):
-        self.send(text_data=json.dumps(content))
-
-    def send_error(self, message):
-        self.send_json({'error': message})
+    async def send_error(self, message):
+        await self.send_json({'error': message})
