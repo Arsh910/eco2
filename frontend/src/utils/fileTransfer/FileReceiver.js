@@ -21,6 +21,10 @@ export class FileReceiver {
         this.fileHandle = null;
         this.writableStream = null;
         this.writer = null;
+        this.isPaused = false;
+
+        // Strict async processing queue to prevent chunk race conditions
+        this.writeQueue = Promise.resolve();
         this.state = TransferState.IDLE;
         this.bytesReceived = 0;
         this.startTime = null;
@@ -163,53 +167,58 @@ export class FileReceiver {
             return;
         }
 
-        try {
-            const { checkpointIndex, chunkIndex, data } = decodeBinaryChunk(arrayBuffer);
-            //console.log(`[FileReceiver] Received chunk ${chunkIndex} (checkpoint ${checkpointIndex})`);
-            if (checkpointIndex < this.currentCheckpoint) {
-                //console.log('[FileReceiver] Skipping chunk from old checkpoint');
-                return;
-            }
-            if (checkpointIndex > this.currentCheckpoint) {
-                //console.log('[FileReceiver] New checkpoint started:', checkpointIndex);
-                this.currentCheckpoint = checkpointIndex;
-                this.receivedChunks.clear();
-            }
-            const localChunkInCheckpoint = chunkIndex % CHECKPOINT_CHUNKS;
-            if (this.receivedChunks.has(localChunkInCheckpoint)) {
-                //console.log('[FileReceiver] Ignoring duplicate chunk:', chunkIndex);
-                return;
-            }
+        // Enforce strictly sequential processing
+        this.writeQueue = this.writeQueue.then(async () => {
+            try {
+                const { checkpointIndex, chunkIndex, data } = decodeBinaryChunk(arrayBuffer);
+                //console.log(`[FileReceiver] Received chunk ${chunkIndex} (checkpoint ${checkpointIndex})`);
+                if (checkpointIndex < this.currentCheckpoint) {
+                    //console.log('[FileReceiver] Skipping chunk from old checkpoint');
+                    return;
+                }
+                if (checkpointIndex > this.currentCheckpoint) {
+                    //console.log('[FileReceiver] New checkpoint started:', checkpointIndex);
+                    this.currentCheckpoint = checkpointIndex;
+                    this.receivedChunks.clear();
+                }
+                const localChunkInCheckpoint = chunkIndex % CHECKPOINT_CHUNKS;
+                if (this.receivedChunks.has(localChunkInCheckpoint)) {
+                    //console.log('[FileReceiver] Ignoring duplicate chunk:', chunkIndex);
+                    return;
+                }
 
-            await this.writeChunkToDisk(chunkIndex, data);
-            this.receivedChunks.add(localChunkInCheckpoint);
-            this.bytesReceived += data.byteLength;
+                await this.writeChunkToDisk(chunkIndex, data);
+                this.receivedChunks.add(localChunkInCheckpoint);
+                this.bytesReceived += data.byteLength;
 
-            if (this.onProgress) {
-                this.onProgress({
-                    chunkIndex,
-                    totalChunks: this.totalChunks,
-                    bytesReceived: this.bytesReceived,
-                    totalBytes: this.fileSize,
-                    checkpointIndex,
-                    totalCheckpoints: this.totalCheckpoints,
-                    percentage: (this.bytesReceived / this.fileSize) * 100,
-                    speed: this.calculateSpeed()
-                });
+                if (this.onProgress) {
+                    this.onProgress({
+                        chunkIndex,
+                        totalChunks: this.totalChunks,
+                        bytesReceived: this.bytesReceived,
+                        totalBytes: this.fileSize,
+                        checkpointIndex,
+                        totalCheckpoints: this.totalCheckpoints,
+                        percentage: (this.bytesReceived / this.fileSize) * 100,
+                        speed: this.calculateSpeed()
+                    });
+                }
+                await this.checkCheckpointComplete(checkpointIndex);
+
+            } catch (error) {
+                console.error('[FileReceiver] Error handling binary chunk:', error);
+
+                if (this.onError) {
+                    this.onError({
+                        type: 'chunk_write_error',
+                        message: 'Failed to write chunk',
+                        error
+                    });
+                }
             }
-            await this.checkCheckpointComplete(checkpointIndex);
+        });
 
-        } catch (error) {
-            console.error('[FileReceiver] Error handling binary chunk:', error);
-
-            if (this.onError) {
-                this.onError({
-                    type: 'chunk_write_error',
-                    message: 'Failed to write chunk',
-                    error
-                });
-            }
-        }
+        await this.writeQueue;
     }
 
     async flushBuffer() {
