@@ -118,19 +118,6 @@ export class FileSender {
                 }
             };
 
-            this.transferWs.onclose = (event) => {
-                if (this.state !== TransferState.COMPLETED && this.state !== TransferState.FAILED && this.state !== TransferState.CANCELLED) {
-                    console.error('[FileSender] transferWs closed unexpectedly', event.code, event.reason);
-                    this.setState(TransferState.FAILED);
-                    if (this.onError) {
-                        this.onError({
-                            type: 'transfer_websocket_closed',
-                            message: 'Binary transfer websocket closed unexpectedly'
-                        });
-                    }
-                }
-            };
-
             await new Promise((resolve, reject) => {
                 this.transferWs.onopen = resolve;
                 this.transferWs.onerror = reject;

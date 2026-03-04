@@ -28,10 +28,6 @@ class ReceiverHandler:
                 buffered_bytes = await self.check_twisted_backpressure()
                 if buffered_bytes > 0:
                     await self.adaptive_sleep(buffered_bytes)
-                else:
-                    # Give the Daphne Channel layer a tiny moment to flush the memory queue
-                    # (Django Channels InMemoryChannelLayer has a default 100-message cap)
-                    await asyncio.sleep(0.005)
                 
                 self.total_bytes_received += len(chunk.data)
                 self.chunks_received += 1
