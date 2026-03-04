@@ -1,4 +1,5 @@
 import json
+import asyncio
 from urllib.parse import parse_qs
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.cache import cache
@@ -41,6 +42,7 @@ class ServerConsumer(AsyncWebsocketConsumer):
         self.user = None
         self.guest_user = None
         self.is_authenticated_context = False
+        self._relay_chunk_counter = 0  # For flow-control pacing
 
         if not self.room_id:
             await self.close()
@@ -88,7 +90,7 @@ class ServerConsumer(AsyncWebsocketConsumer):
         """
         try:
             # ----------------------------------------------------------------
-            # Binary path: direct in-memory relay — O(members), zero overhead
+            # Binary path: direct in-memory relay with flow control
             # ----------------------------------------------------------------
             if bytes_data:
                 if not self.is_authenticated_context:
@@ -96,6 +98,7 @@ class ServerConsumer(AsyncWebsocketConsumer):
                     await self.close()
                     return
 
+                self._relay_chunk_counter += 1
                 room = ROOM_REGISTRY.get(self.room_id, {})
                 for channel_name, consumer in list(room.items()):
                     if channel_name != self.channel_name:
@@ -103,6 +106,11 @@ class ServerConsumer(AsyncWebsocketConsumer):
                             await consumer.send(bytes_data=bytes_data)
                         except Exception as e:
                             print(f"[BinaryRelay] Failed to relay to {channel_name}: {e}")
+
+                # Flow control: yield to event loop every 4 chunks
+                # so Daphne's Twisted write buffer can drain to client
+                if self._relay_chunk_counter % 4 == 0:
+                    await asyncio.sleep(0.01)
                 return
 
             # ----------------------------------------------------------------
