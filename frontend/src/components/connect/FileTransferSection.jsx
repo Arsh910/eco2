@@ -585,7 +585,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                             File Transfer
                         </h2>
                         <p className="text-sm text-[var(--text-secondary)]">
-                            Supports 100GB+ files • End-to-end Encrypted
+                            Supports 1GB+ files • End-to-end Encrypted
                         </p>
                     </div>
 

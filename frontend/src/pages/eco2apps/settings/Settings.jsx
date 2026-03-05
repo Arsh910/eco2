@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Shield, Zap, LogOut } from 'lucide-react';
+import { Shield, Zap, LogOut, Info, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import DisplaySettings from './sections/DisplaySettings';
+import AboutUs from './sections/AboutUs';
 import FeedbackModal from './components/FeedbackModal';
 
 export default function Settings() {
     const { user, guestName, mode, logout } = useAuth();
     const navigate = useNavigate();
     const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, type: 'bug' });
+    const [showAbout, setShowAbout] = useState(false);
 
     const openFeedbackModal = (type) => {
         setFeedbackModal({ isOpen: true, type });
@@ -24,6 +26,10 @@ export default function Settings() {
         logout();
         navigate('/login');
     };
+
+    if (showAbout) {
+        return <AboutUs onBack={() => setShowAbout(false)} />;
+    }
 
     return (
         <div className="h-full flex flex-col p-6 space-y-6 select-none text-[var(--text-primary)] transition-colors duration-300" style={{ "height": "fit-content" }}>
@@ -110,6 +116,23 @@ export default function Settings() {
                     </button>
                 </div>
             </div>
+
+            {/* About Us Entry */}
+            <button
+                onClick={() => setShowAbout(true)}
+                className="w-full bg-[var(--bg-window)] backdrop-blur-md rounded-2xl p-6 border border-[var(--border-subtle)] shadow-lg transition-all duration-300 hover:border-[var(--accent-primary)]/30 group text-left flex items-center justify-between"
+            >
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-primary)]/10 to-purple-600/10 border border-[var(--border-subtle)] flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
+                        <img src="/logo/logo.png" alt="Eco2" className="w-8 h-8 object-contain" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-[var(--text-primary)]">About EcoOS</h3>
+                        <p className="text-sm text-[var(--text-secondary)]">Version 1.0.0 — Aurora</p>
+                    </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] group-hover:translate-x-1 transition-all" />
+            </button>
 
             <FeedbackModal
                 isOpen={feedbackModal.isOpen}
