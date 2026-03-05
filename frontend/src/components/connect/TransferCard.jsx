@@ -7,9 +7,24 @@ export default function TransferCard({ transfer, onDelete }) {
 
     const handleCopy = async () => {
         if (transfer.type === "text") {
-            await navigator.clipboard.writeText(transfer.content);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            try {
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(transfer.content);
+                } else {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = transfer.content;
+                    textArea.style.position = 'fixed';
+                    textArea.style.opacity = '0';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                }
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } catch (err) {
+                console.error("Failed to copy: ", err);
+            }
         }
     };
 

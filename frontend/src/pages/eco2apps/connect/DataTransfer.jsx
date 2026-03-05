@@ -47,7 +47,18 @@ export default function DataTransfer() {
     const handleCopyCode = async () => {
         if (roomCode) {
             try {
-                await navigator.clipboard.writeText(roomCode);
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(roomCode);
+                } else {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = roomCode;
+                    textArea.style.position = 'fixed';
+                    textArea.style.opacity = '0';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                }
                 setCodeCopied(true);
                 setTimeout(() => setCodeCopied(false), 2000);
             } catch (err) {

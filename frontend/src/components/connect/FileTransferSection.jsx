@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Pause, Play, XCircle, Upload, Files, Lock, Unlock, Check } from "lucide-react";
+import { X, Pause, Play, XCircle, Upload, Files, Lock, Unlock, Check, Info } from "lucide-react";
 import { FileSender } from "../../utils/fileTransfer/FileSender.js";
 import { FileReceiver } from "../../utils/fileTransfer/FileReceiver.js";
 import { generateFileId, formatBytes, formatSpeed, formatDuration, calculateETA, downloadFromOPFS } from "../../utils/fileTransfer/helpers.js";
@@ -53,11 +53,15 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
 
         receiver.onComplete = (result) => {
             //console.log('[FileTransferSection] Transfer complete:', result);
+            const memoryBlob = receiver.memoryChunks
+                ? new Blob(receiver.memoryChunks, { type: 'application/octet-stream' })
+                : null;
             setTransfers(prev => prev.map(t =>
                 t.fileId === meta.fileId ? {
                     ...t,
                     state: TransferState.COMPLETED,
-                    progress: 100
+                    progress: 100,
+                    ...(memoryBlob ? { blob: memoryBlob } : {})
                 } : t
             ));
             activeReceiverRef.current = null;
@@ -227,6 +231,8 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
         };
     }, [wsRef, setFileTransferCallbacks]);
 
+    const [largeFileWarning, setLargeFileWarning] = useState(false);
+
     const handleFilesSelected = (files) => {
         const newFiles = files.map((file) => ({
             id: Date.now() + Math.random(),
@@ -236,6 +242,12 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
             type: file.type,
             preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
         }));
+
+        const hasLargeFile = files.some(f => f.size > 100 * 1024 * 1024);
+        if (hasLargeFile) {
+            setLargeFileWarning(true);
+            setTimeout(() => setLargeFileWarning(false), 8000);
+        }
 
         setSelectedFiles((prev) => [...prev, ...newFiles]);
     };
@@ -414,6 +426,12 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                 ));
             };
 
+            sender.onWaitingChange = (isWaiting) => {
+                setTransfers(prev => prev.map(t =>
+                    t.fileId === fileId ? { ...t, isWaitingForReceiver: isWaiting } : t
+                ));
+            };
+
             try {
                 const savedProgress = FileSender.loadProgress(fileId);
 
@@ -487,11 +505,47 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
         setTransfers((prev) => prev.filter((t) => t.id !== id));
     };
 
-    const handleDownload = async (fileName) => {
-        try {
-            // Check if file is encrypted
-            if (fileName.endsWith('.enc')) {
+    const triggerBlobDownload = (blob, name) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
+    const handleDownload = async (fileName, transferId) => {
+        try {
+            const transfer = transfers.find(t => t.id === transferId);
+            const hasOPFS = typeof navigator.storage?.getDirectory === 'function';
+
+            // Memory fallback path (HTTP / non-secure context)
+            if (transfer?.blob) {
+                if (fileName.endsWith('.enc')) {
+                    let password = encryptionPassword;
+                    if (!password) {
+                        password = prompt(`The file "${fileName}" is encrypted.\nEnter password to decrypt:`);
+                    }
+                    if (!password) return;
+                    try {
+                        const decryptedBlob = await decryptFile(transfer.blob, password);
+                        triggerBlobDownload(decryptedBlob, fileName.replace(/\.enc$/, ''));
+                    } catch (err) {
+                        alert("Decryption failed. Incorrect password or corrupted file.");
+                        if (confirm("Download encrypted file instead?")) {
+                            triggerBlobDownload(transfer.blob, fileName);
+                        }
+                    }
+                } else {
+                    triggerBlobDownload(transfer.blob, fileName);
+                }
+                return;
+            }
+
+            // OPFS path (HTTPS / secure context)
+            if (fileName.endsWith('.enc') && hasOPFS) {
                 const root = await navigator.storage.getDirectory();
                 const fileHandle = await root.getFileHandle(fileName);
                 const file = await fileHandle.getFile();
@@ -500,29 +554,21 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                 if (!password) {
                     password = prompt(`The file "${fileName}" is encrypted.\nEnter password to decrypt:`);
                 }
-
                 if (!password) return;
 
                 try {
                     const decryptedBlob = await decryptFile(file, password);
-                    const originalName = fileName.replace(/\.enc$/, '');
-                    const url = URL.createObjectURL(decryptedBlob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = originalName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
+                    triggerBlobDownload(decryptedBlob, fileName.replace(/\.enc$/, ''));
                 } catch (err) {
                     alert("Decryption failed. Incorrect password or corrupted file.");
                     if (confirm("Decryption failed. Download encrypted file instead?")) {
                         await downloadFromOPFS(fileName);
                     }
                 }
-
-            } else {
+            } else if (hasOPFS) {
                 await downloadFromOPFS(fileName);
+            } else {
+                alert('File data not available. Please try the transfer again.');
             }
         } catch (error) {
             console.error('Download failed:', error);
@@ -585,6 +631,23 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                     )}
                 </div>
             </div>
+
+            {largeFileWarning && (
+                <div className="mb-3 flex items-start gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl animate-in fade-in duration-300">
+                    <Info className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                            Large file detected
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                            To send large files, make sure the receiver has a fast internet connection.
+                        </p>
+                    </div>
+                    <button onClick={() => setLargeFileWarning(false)} className="text-amber-400 hover:text-amber-600 dark:hover:text-amber-300">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
             {selectedFiles.length > 0 && (
                 <div className="mb-4">
@@ -719,9 +782,9 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                                     <button
                                                         onClick={() => handlePauseResume(transfer.id)}
                                                         className="p-1.5 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors"
-                                                        title={transfer.state === TransferState.TRANSFERRING ? 'Pause' : 'Resume'}
+                                                        title={transfer.state === TransferState.TRANSFERRING && !transfer.isWaitingForReceiver ? 'Pause' : 'Resume'}
                                                     >
-                                                        {transfer.state === TransferState.TRANSFERRING ? (
+                                                        {transfer.state === TransferState.TRANSFERRING && !transfer.isWaitingForReceiver ? (
                                                             <Pause className="w-4 h-4 text-[var(--text-secondary)]" />
                                                         ) : (
                                                             <Play className="w-4 h-4 text-[var(--text-secondary)]" />
@@ -731,7 +794,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
 
                                             {transfer.direction === 'received' && transfer.state === TransferState.COMPLETED && (
                                                 <button
-                                                    onClick={() => handleDownload(transfer.fileName)}
+                                                    onClick={() => handleDownload(transfer.fileName, transfer.id)}
                                                     className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors mr-1"
                                                 >
                                                     {transfer.fileName.endsWith('.enc') ? 'Decrypt & Download' : 'Download'}
@@ -783,7 +846,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
 
                                     <div className="flex items-center justify-between text-xs text-[var(--text-tertiary)]">
                                         <div className="flex items-center gap-3">
-                                            {transfer.state === TransferState.TRANSFERRING && (
+                                            {transfer.state === TransferState.TRANSFERRING && !transfer.isWaitingForReceiver && (
                                                 <>
                                                     <span>{formatBytes(transfer.bytesTransferred)} / {formatBytes(transfer.size)}</span>
                                                     <span>•</span>
@@ -795,6 +858,9 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                                         </>
                                                     )}
                                                 </>
+                                            )}
+                                            {transfer.state === TransferState.TRANSFERRING && transfer.isWaitingForReceiver && (
+                                                <span className="text-yellow-600 dark:text-yellow-400 font-medium">⏸ Holding upload, Waiting for receiver to download the batch</span>
                                             )}
                                             {transfer.state === TransferState.COMPLETED && (
                                                 <span className="text-green-600 dark:text-[#05d9e8] font-medium">✓ Complete</span>

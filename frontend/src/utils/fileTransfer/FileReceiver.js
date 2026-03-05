@@ -125,15 +125,27 @@ export class FileReceiver {
         //console.log('[FileReceiver] Sent transfer-accepted:', msg);
     }
 
+    get hasOPFS() {
+        return typeof navigator.storage?.getDirectory === 'function';
+    }
+
     async initializeFileWrite() {
         try {
-            const root = await navigator.storage.getDirectory();
-            this.fileHandle = await root.getFileHandle(this.fileName, { create: true });
-            this.writableStream = await this.fileHandle.createWritable();
-            this.writer = this.writableStream;
-
-            //console.log('[FileReceiver] Using OPFS for file writing');
-            //console.log('[FileReceiver] File will be saved to browser storage. You can download it when transfer completes.');
+            if (this.hasOPFS) {
+                const root = await navigator.storage.getDirectory();
+                this.fileHandle = await root.getFileHandle(this.fileName, { create: true });
+                this.writableStream = await this.fileHandle.createWritable();
+                this.writer = this.writableStream;
+            } else {
+                // Memory fallback for non-secure contexts (HTTP)
+                this.memoryChunks = [];
+                this.writer = {
+                    write: (data) => { this.memoryChunks.push(data); },
+                    flush: () => {},
+                    close: () => {},
+                    abort: () => { this.memoryChunks = []; }
+                };
+            }
         } catch (error) {
             console.error('[FileReceiver] Error initializing file write:', error);
 
@@ -150,26 +162,19 @@ export class FileReceiver {
         }
     }
 
-    async useOPFS() {
-        const root = await navigator.storage.getDirectory();
-        this.fileHandle = await root.getFileHandle(this.fileName, { create: true });
-        this.writableStream = await this.fileHandle.createWritable();
-        this.writer = this.writableStream;
-
-        //console.log('[FileReceiver] Using OPFS');
-    }
-
     async openFileForResume() {
         try {
-            const root = await navigator.storage.getDirectory();
-            this.fileHandle = await root.getFileHandle(this.fileName, { create: false });
-            this.writableStream = await this.fileHandle.createWritable({ keepExistingData: true });
-            const resumeOffset = (this.lastCommittedCheckpoint + 1) * CHECKPOINT_CHUNKS * CHUNK_SIZE;
-            await this.writableStream.seek(resumeOffset);
-
-            this.writer = this.writableStream;
-
-            //console.log('[FileReceiver] Resumed file from OPFS, offset:', resumeOffset);
+            if (this.hasOPFS) {
+                const root = await navigator.storage.getDirectory();
+                this.fileHandle = await root.getFileHandle(this.fileName, { create: false });
+                this.writableStream = await this.fileHandle.createWritable({ keepExistingData: true });
+                const resumeOffset = (this.lastCommittedCheckpoint + 1) * CHECKPOINT_CHUNKS * CHUNK_SIZE;
+                await this.writableStream.seek(resumeOffset);
+                this.writer = this.writableStream;
+            } else {
+                // Memory fallback can't resume — start fresh
+                await this.initializeFileWrite();
+            }
         } catch (error) {
             console.error('[FileReceiver] Error reopening file for resume:', error);
 
@@ -376,11 +381,15 @@ export class FileReceiver {
 
     async downloadFile() {
         try {
-            if (!this.fileHandle) {
-                throw new Error('No file handle available');
+            let blob;
+            if (this.fileHandle) {
+                const file = await this.fileHandle.getFile();
+                blob = new Blob([file], { type: file.type || 'application/octet-stream' });
+            } else if (this.memoryChunks) {
+                blob = new Blob(this.memoryChunks, { type: 'application/octet-stream' });
+            } else {
+                throw new Error('No file data available');
             }
-            const file = await this.fileHandle.getFile();
-            const blob = new Blob([file], { type: file.type || 'application/octet-stream' });
             if ('showSaveFilePicker' in window) {
                 try {
                     const saveHandle = await window.showSaveFilePicker({
@@ -443,6 +452,7 @@ export class FileReceiver {
             if (this.fileHandle && this.fileHandle.remove) {
                 await this.fileHandle.remove();
             }
+            this.memoryChunks = null;
 
             await clearCheckpoint(this.fileId);
 

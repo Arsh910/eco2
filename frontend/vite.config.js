@@ -11,5 +11,8 @@ export default defineConfig({
   //       changeOrigin: true
   //     }
   //   }
-  // }
+  // }                                                                                       
+  build: {
+    chunkSizeWarningLimit: 1000, // raise from 500 to 1000 kB
+  }
 })

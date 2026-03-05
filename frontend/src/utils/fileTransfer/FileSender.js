@@ -29,6 +29,7 @@ export class FileSender {
         this.onComplete = null;
         this.onError = null;
         this.onStateChange = null;
+        this.onWaitingChange = null;
         this.chunkGenerator = null;
     }
 
@@ -134,20 +135,33 @@ export class FileSender {
             }
 
             // Backend Memory Backpressure (Adaptive Pause)
-            while (this.isPaused && this.state === TransferState.TRANSFERRING) {
-                await new Promise(resolve => setTimeout(resolve, 50));
+            if (this.isPaused && this.state === TransferState.TRANSFERRING) {
+                if (this.onWaitingChange) this.onWaitingChange(true);
+                while (this.isPaused && this.state === TransferState.TRANSFERRING) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                if (this.onWaitingChange) this.onWaitingChange(false);
             }
 
             const checkpointIndex = getCheckpointIndex(chunkIndex, CHECKPOINT_CHUNKS);
 
             // Peer-to-Peer Disk Persistence Flow Control (max 2 unacknowledged checkpoints in flight)
-            while (
+            if (
                 checkpointIndex > this.lastAckedCheckpoint + 2 &&
                 !this.isPaused &&
                 this.state === TransferState.TRANSFERRING &&
                 this.ws.readyState === WebSocket.OPEN
             ) {
-                await new Promise(resolve => setTimeout(resolve, 50));
+                if (this.onWaitingChange) this.onWaitingChange(true);
+                while (
+                    checkpointIndex > this.lastAckedCheckpoint + 2 &&
+                    !this.isPaused &&
+                    this.state === TransferState.TRANSFERRING &&
+                    this.ws.readyState === WebSocket.OPEN
+                ) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                if (this.onWaitingChange) this.onWaitingChange(false);
             }
 
             if (checkpointIndex <= this.lastAckedCheckpoint) {
