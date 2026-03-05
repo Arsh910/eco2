@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link2, Copy, Check, LogOut, XCircle, MessageSquare, Files } from "lucide-react";
+import { Eye, EyeOff, Copy, Check, LogOut, XCircle, MessageSquare, Files } from "lucide-react";
 import ConnectionStatus from "../../../components/connect/ConnectionStatus";
 import TextTransferSection from "../../../components/connect/TextTransferSection";
 import FileTransferSection from "../../../components/connect/FileTransferSection";
@@ -19,6 +19,7 @@ export default function DataTransfer() {
     const [joinCode, setJoinCode] = useState("");
     const [codeCopied, setCodeCopied] = useState(false);
     const [qrLoading, setQrLoading] = useState(true);
+    const [showRoomCode, setShowRoomCode] = useState(false);
     const [runTour, setRunTour] = useState(true);
 
 
@@ -148,9 +149,15 @@ export default function DataTransfer() {
                                 <div className="flex-1 w-full flex items-stretch gap-2">
                                     <div className="flex-1 flex items-center gap-3 px-4 py-3 bg-[var(--bg-secondary)] 
                                                       border-2 border-[var(--border-subtle)] rounded-xl" data-tour="room-code">
-                                        <Link2 className="w-5 h-5 text-[var(--accent-primary)]" />
+                                        <button
+                                            onClick={() => setShowRoomCode(!showRoomCode)}
+                                            className="text-[var(--accent-primary)] hover:opacity-70 transition-opacity"
+                                            title={showRoomCode ? 'Hide code' : 'Show code'}
+                                        >
+                                            {showRoomCode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        </button>
                                         <code className="text-xl font-bold tracking-wider text-[var(--accent-primary)]">
-                                            {roomCode || '---'}
+                                            {roomCode ? (showRoomCode ? roomCode : '••••••') : '---'}
                                         </code>
                                     </div>
 
