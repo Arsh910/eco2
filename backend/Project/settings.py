@@ -28,7 +28,7 @@ SECRET_KEY = env('SECRET_KEY')
 
 DEBUG = env.bool('DEBUG', default=False)
 
-ALLOWED_HOSTS = ["54.226.111.111","localhost","127.0.0.1","eco2-frontend-production-s3-website.us-east-1.amazonaws.com"]
+ALLOWED_HOSTS = ["54.226.111.111","localhost","127.0.0.1","eco2.0.s3-website-us-east-1.amazonaws.com"]
 
 
 # Application definition
@@ -72,12 +72,12 @@ CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://eco2-frontend-production-s3-website.us-east-1.amazonaws.com",
+    "http://eco2.0.s3-website-us-east-1.amazonaws.com",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
-    "http://eco2-frontend-production-s3-website.us-east-1.amazonaws.com",
+    "http://eco2.0.s3-website-us-east-1.amazonaws.com",
 ]
 
 
