@@ -55,30 +55,33 @@ class TransferBuffer:
         return True
 
     async def get_chunk(self) -> Optional[Chunk]:
-        """
-        Called by ReceiverHandler to get a chunk.
+        while True:
+            try:
+                chunk = await asyncio.wait_for(self.chunks.get(), timeout=5.0)
+                if chunk is None:
+                    return None
 
-        If queue is empty, this async function BLOCKS (receiver sleeps).
-        No polling, no busy-waiting every 10ms. Returns None when finished.
-        """
-        try:
-            chunk = await asyncio.wait_for(self.chunks.get(), timeout=1.0)
-        except asyncio.TimeoutError:
-            if self._finished:
-                return None
-            return await self.get_chunk()
+                chunk_size = len(chunk.data)
+                self.current_bytes -= chunk_size
+                self._update_consumption_rate(chunk_size)
 
-        if chunk is None:
-            return None
+                if self.can_accept_chunk(chunk_size):
+                    self._space_available.set()
 
-        chunk_size = len(chunk.data)
-        self.current_bytes -= chunk_size
-        self._update_consumption_rate(chunk_size)
-
-        if self.can_accept_chunk(chunk_size):
-            self._space_available.set()
-
-        return chunk
+                return chunk
+                
+            except asyncio.TimeoutError:
+                # Queue is empty and we've waited 5 seconds
+                if self._finished:
+                    return None
+                # Loop continues - wait another 5 seconds instead of recursing
+                continue
+            except Exception as e:
+                print(f"[TransferBuffer] Error in get_chunk: {e}")
+                if self._finished:
+                    return None
+                await asyncio.sleep(0.1)
+                continue
 
     def finish(self):
         """
