@@ -10,26 +10,6 @@ from asgiref.sync import sync_to_async
 
 User = get_user_model()
 
-# ---------------------------------------------------------------------------
-# Module-level room registry for direct binary relay (bypasses channel layer)
-# Structure: { room_id: { channel_name: consumer_instance } }
-# ---------------------------------------------------------------------------
-ROOM_REGISTRY: dict[str, dict[str, "ServerConsumer"]] = {}
-
-
-def _register(room_id: str, channel_name: str, consumer: "ServerConsumer"):
-    if room_id not in ROOM_REGISTRY:
-        ROOM_REGISTRY[room_id] = {}
-    ROOM_REGISTRY[room_id][channel_name] = consumer
-
-
-def _unregister(room_id: str, channel_name: str):
-    room = ROOM_REGISTRY.get(room_id)
-    if room:
-        room.pop(channel_name, None)
-        if not room:
-            ROOM_REGISTRY.pop(room_id, None)
-
 
 class ServerConsumer(AsyncWebsocketConsumer):
 
@@ -44,7 +24,6 @@ class ServerConsumer(AsyncWebsocketConsumer):
 
 
         self.is_authenticated_context = False
-        self._relay_chunk_counter = 0  # For flow-control pacing
 
         if not self.room_id:
             await self.close()
@@ -79,45 +58,13 @@ class ServerConsumer(AsyncWebsocketConsumer):
                 )
         except Exception as e:
             print(f"Error in disconnect: {e}")
-        finally:
-            # Always unregister from the binary relay registry
-            _unregister(self.room_id, self.channel_name)
 
     async def receive(self, text_data=None, bytes_data=None):
-        """
-        Handle incoming WebSocket messages.
-        Binary data (file chunks) is relayed DIRECTLY to room members,
-        bypassing the channel layer entirely — no queue limit, no overhead.
-        Text data (control messages) continues through the channel layer.
-        """
         try:
-            # ----------------------------------------------------------------
-            # Binary path: direct in-memory relay with flow control
-            # ----------------------------------------------------------------
             if bytes_data:
-                if not self.is_authenticated_context:
-                    await self.send_error("Authentication required")
-                    await self.close()
-                    return
-
-                self._relay_chunk_counter += 1
-                room = ROOM_REGISTRY.get(self.room_id, {})
-                for channel_name, consumer in list(room.items()):
-                    if channel_name != self.channel_name:
-                        try:
-                            await consumer.send(bytes_data=bytes_data)
-                        except Exception as e:
-                            print(f"[BinaryRelay] Failed to relay to {channel_name}: {e}")
-
-                # Flow control: yield to event loop every 4 chunks
-                # so Daphne's Twisted write buffer can drain to client
-                if self._relay_chunk_counter % 4 == 0:
-                    await asyncio.sleep(0.01)
+                await self.send_error("Binary data not supported on this endpoint. Use /ws/sender/<transfer_id> instead.")
                 return
 
-            # ----------------------------------------------------------------
-            # Text path: JSON control messages through channel layer
-            # ----------------------------------------------------------------
             if not text_data:
                 return
 
@@ -193,10 +140,6 @@ class ServerConsumer(AsyncWebsocketConsumer):
     # ------------------------------------------------------------------
 
     async def _join_room(self):
-        # Register for direct binary relay
-        _register(self.room_id, self.channel_name, self)
-
-        # Register with channel layer for text/control messages
         await self.channel_layer.group_add(
             self.room_id,
             self.channel_name
@@ -345,12 +288,12 @@ from server.relay.handlers.receiver_handler import ReceiverHandler
 class SenderConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.transfer_id = self.scope['url_route']['kwargs']['transfer_id']
-        
+
         # Get or create session
         self.session = await session_manager.get_session(self.transfer_id)
         if not self.session:
             self.session = await session_manager.create_session(self.transfer_id)
-        
+
         await self.session.connect_sender(self)
         await self.accept()
 
@@ -359,11 +302,14 @@ class SenderConsumer(AsyncWebsocketConsumer):
             # Create handler if not exists
             if not hasattr(self, 'handler'):
                 self.handler = SenderHandler(self.session.buffer, self)
-            
+
             # Delegate to handler
             await self.handler.handle_chunk(bytes_data)
 
     async def disconnect(self, close_code):
+        if hasattr(self, 'session') and self.session.buffer:
+            self.session.buffer.finish()
+
         if hasattr(self, 'session'):
             await self.session.cleanup()
             await session_manager.remove_session(self.transfer_id)
@@ -388,7 +334,10 @@ class ReceiverConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if hasattr(self, 'download_task'):
             self.download_task.cancel()
-        
+
+        if hasattr(self, 'session') and self.session.buffer:
+            self.session.buffer.finish()
+
         if hasattr(self, 'session'):
             if self.session.sender_ws:
                 try:

@@ -13,40 +13,38 @@ class ReceiverHandler:
     async def handle_download(self) -> None:
         try:
             while True:
-                chunk = self.buffer.get_chunk()
-                
+                chunk = await self.buffer.get_chunk()
+
                 if chunk is None:
-                    # Buffer is empty, wait for sender
-                    await asyncio.sleep(0.05)
-                    continue
-                    
-                # Try to send chunk via websocket
-                # For AsyncWebsocketConsumer, we use send(bytes_data=...)
-                await self.websocket.send(bytes_data=chunk.data)
-                
+                    break
+
+                try:
+                    await self.websocket.send(bytes_data=chunk.data)
+                except Exception as e:
+                    print(f"[ReceiverHandler] Failed to send chunk: {e}")
+                    break
+
                 # Check twisted backpressure
                 buffered_bytes = await self.check_twisted_backpressure()
                 if buffered_bytes > 0:
                     await self.adaptive_sleep(buffered_bytes)
-                
+
                 self.total_bytes_received += len(chunk.data)
                 self.chunks_received += 1
                 self.last_chunk_time = time.time()
-                
-                # Optionally check if sender needs to be resumed because we drained the buffer
-                if hasattr(self.websocket, 'session') and self.websocket.session.sender_task:
-                    # Let the sender_ws handler push resume signal if needed
-                    # Or we can directly call check_resume on sender_handler if we had a ref
-                    pass
+
+                # Check if sender needs to be resumed because we drained the buffer
                 if hasattr(self.websocket, 'session'):
                     sender_consumer = self.websocket.session.sender_ws
                     if sender_consumer and hasattr(sender_consumer, 'handler'):
                         await sender_consumer.handler.check_resume()
 
+        except asyncio.CancelledError:
+            print(f"[ReceiverHandler] Download cancelled for {self.buffer.transfer_id}")
+            raise
         except Exception as e:
-            print(f"[ReceiverHandler] Error in download loop for {self.buffer.transfer_id}: {e}")
+            print(f"[ReceiverHandler] Unexpected error for {self.buffer.transfer_id}: {e}")
             if hasattr(self.websocket, 'session'):
-                # Notify sender that receiver disconnected
                 sender_ws = self.websocket.session.sender_ws
                 if sender_ws:
                     import json
@@ -58,31 +56,24 @@ class ReceiverHandler:
                         }))
                     except Exception:
                         pass
-                await self.websocket.session.cleanup()
+        finally:
+            self.buffer.finish()
 
     async def check_twisted_backpressure(self) -> int:
         """Returns bytes buffered in Twisted's internal buffer"""
         try:
-            # Django Channels generic async websocket consumer wraps the base send
-            # We access the transport dynamically if possible.
-            # Usually ASGI servers manage this opaquely. We'll try to find Autobahn protocol transport
-            # As a fallback or if not accessible, we return 0. 
-            # In purely ASGI compliant apps, this might not be accessible directly.
-            # We will use a safe checking logic.
-            # If daphne channel layer isn't exposing this directly on self.websocket...
             protocol = getattr(self.websocket, 'protocol', None)
             if protocol and hasattr(protocol, 'transport'):
                 if hasattr(protocol.transport, 'getWriteBufferSize'):
                     return protocol.transport.getWriteBufferSize()
-                elif hasattr(protocol.transport, 'get_write_buffer_size'): # asyncio transports
+                elif hasattr(protocol.transport, 'get_write_buffer_size'):
                     return protocol.transport.get_write_buffer_size()
-                    
-            # Try exploring ASGI scope if transport is injected (some ASGI servers do this)
+
             if hasattr(self.websocket, 'scope') and 'transport' in self.websocket.scope:
                 transport = self.websocket.scope['transport']
                 if hasattr(transport, 'get_write_buffer_size'):
                     return transport.get_write_buffer_size()
-                    
+
             return 0
         except Exception:
             return 0

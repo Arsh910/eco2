@@ -29,4 +29,10 @@ export const tourSteps = [
             target: '[data-tour="encryption-info"]',
             content: 'Click this to Encrypt your files before sending.',
         },
+        {
+            target: 'body',
+            content: 'During file transfers, check your browser tab — the favicon shows real-time transfer progress so you can monitor it even when this tab is in the background.',
+            placement: 'center',
+            disableBeacon: true,
+        },
     ];

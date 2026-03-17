@@ -12,7 +12,6 @@ export const useWebSocket = (roomCode) => {
     const wsRef = useRef(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const fileTransferCallbacksRef = useRef({
-        onBinaryChunk: null,
         onFileMeta: null,
         onCheckpointAck: null,
         onResumeInfo: null,
@@ -51,19 +50,8 @@ export const useWebSocket = (roomCode) => {
                 };
 
                 ws.onmessage = async (event) => {
+                    // Binary data should never arrive on ServerConsumer — ignore if it does
                     if (event.data instanceof ArrayBuffer || event.data instanceof Blob) {
-                        let arrayBuffer;
-
-                        if (event.data instanceof Blob) {
-                            arrayBuffer = await event.data.arrayBuffer();
-                        } else {
-                            arrayBuffer = event.data;
-                        }
-
-                        //console.log('[WebSocket] Binary chunk received, size:', arrayBuffer.byteLength);
-                        if (fileTransferCallbacksRef.current.onBinaryChunk) {
-                            fileTransferCallbacksRef.current.onBinaryChunk(arrayBuffer);
-                        }
                         return;
                     }
 
@@ -213,21 +201,12 @@ export const useWebSocket = (roomCode) => {
         fileTransferCallbacksRef.current = { ...fileTransferCallbacksRef.current, ...callbacks };
     }, []);
 
-    const sendBinary = (arrayBuffer) => {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(arrayBuffer);
-            return true;
-        }
-        return false;
-    };
-
     return {
         connectionStatus,
         connectedUsers,
         messages,
         sendText,
         sendFile,
-        sendBinary,
         setFileTransferCallbacks,
         wsRef,
         isAuthenticated

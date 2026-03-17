@@ -8,12 +8,16 @@ import {
     BACKPRESSURE_LOW_WATERMARK
 } from './constants.js';
 
+const WS_BASE = `${import.meta.env.VITE_API_SOCKET}/ws`;
+
 export class FileSender {
-    constructor(file, fileId, ws, username) {
+    constructor(file, fileId, ws, username, targetUser = null) {
         this.file = file;
         this.fileId = fileId;
-        this.ws = ws;
+        this.ws = ws;                  // ServerConsumer — control messages only
+        this.transferWs = null;        // SenderConsumer — binary chunks only
         this.username = username || 'Unknown User';
+        this.targetUser = targetUser;
         this.totalChunks = Math.ceil(file.size / CHUNK_SIZE);
         this.totalCheckpoints = Math.ceil(this.totalChunks / CHECKPOINT_CHUNKS);
         this.state = TransferState.IDLE;
@@ -33,7 +37,7 @@ export class FileSender {
         this.chunkGenerator = null;
     }
 
-    sendFileMeta() {
+    sendFileMeta(resumed = false) {
         const meta = {
             type: MessageType.FILE_META,
             payload: {
@@ -43,12 +47,12 @@ export class FileSender {
                 chunkSize: CHUNK_SIZE,
                 checkpointChunks: CHECKPOINT_CHUNKS,
                 totalChunks: this.totalChunks,
-                username: this.username
+                username: this.username,
+                ...(this.targetUser ? { targetUser: this.targetUser } : {}),
+                ...(resumed ? { resumed: true } : {})
             }
         };
-
         this.ws.send(JSON.stringify(meta));
-        //console.log('[FileSender] Sent file-meta:', meta);
     }
 
     async *chunkFile(startChunk = 0) {
@@ -59,15 +63,47 @@ export class FileSender {
             const endOffset = Math.min(offset + CHUNK_SIZE, this.file.size);
             const blob = this.file.slice(offset, endOffset);
             const arrayBuffer = await blob.arrayBuffer();
-
-            yield {
-                chunkIndex,
-                data: arrayBuffer
-            };
-
+            yield { chunkIndex, data: arrayBuffer };
             offset = endOffset;
             chunkIndex++;
         }
+    }
+
+    async _openTransferSocket() {
+        if (this.transferWs && this.transferWs.readyState === WebSocket.OPEN) return;
+
+        return new Promise((resolve, reject) => {
+            this.transferWs = new WebSocket(`${WS_BASE}/sender/${this.fileId}`);
+
+            this.transferWs.onopen = () => resolve();
+
+            this.transferWs.onerror = (e) => {
+                console.error('[FileSender] transferWs error', e);
+                if (this.onError) this.onError({ type: 'transfer_ws_error', message: 'Sender connection failed' });
+                reject(e);
+            };
+
+            this.transferWs.onclose = (e) => {
+                if (this.state === TransferState.TRANSFERRING) {
+                    console.warn('[FileSender] transferWs closed unexpectedly', e.code);
+                    this.setState(TransferState.PAUSED);
+                    if (this.onError) this.onError({ type: 'transfer_ws_closed', message: 'Sender connection closed unexpectedly' });
+                }
+            };
+
+            this.transferWs.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'pause') {
+                        this.isPaused = true;
+                        this.setState(TransferState.PAUSED);
+                    } else if (msg.type === 'resume') {
+                        this.isPaused = false;
+                        this.setState(TransferState.TRANSFERRING);
+                    }
+                } catch (e) {}
+            };
+        });
     }
 
     async startTransfer(resumeFromCheckpoint = -1) {
@@ -81,10 +117,8 @@ export class FileSender {
         this.currentChunk = startChunk;
         this.lastAckedCheckpoint = resumeFromCheckpoint;
 
-        //console.log('[FileSender] Starting transfer from chunk:', startChunk);
         this.sendFileMeta();
         this.setState(TransferState.WAITING_FOR_ACCEPTANCE);
-        //console.log('[FileSender] Waiting for receiver acceptance...');
     }
 
     async handleTransferAccepted() {
@@ -92,49 +126,35 @@ export class FileSender {
             console.warn('[FileSender] Received acceptance but not in waiting state:', this.state);
             return;
         }
-
-        //console.log('[FileSender] Transfer accepted by receiver. Starting transmission...');
         this.setState(TransferState.TRANSFERRING);
         await this.sendChunks(this.currentChunk);
     }
 
     async sendChunks(startChunk) {
-        if (!this.transferWs) {
-            const wsBase = this.ws.url.split('/ws/')[0] + '/ws';
-            const senderUrl = `${wsBase}/sender/${this.fileId}`;
-            this.transferWs = new WebSocket(senderUrl);
-
-            this.transferWs.onmessage = (event) => {
-                try {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'pause') {
-                        this.isPaused = true;
-                        this.setState(TransferState.PAUSED); // Optional: add UI pausing
-                    } else if (msg.type === 'resume') {
-                        this.isPaused = false;
-                        this.setState(TransferState.TRANSFERRING);
-                    }
-                } catch (e) {
-                    // Ignore non-json or unexpected messages
-                }
-            };
-
-            await new Promise((resolve, reject) => {
-                this.transferWs.onopen = resolve;
-                this.transferWs.onerror = reject;
-            });
+        try {
+            await this._openTransferSocket();
+        } catch (e) {
+            return;
         }
 
         this.chunkGenerator = this.chunkFile(startChunk);
 
         for await (const { chunkIndex, data } of this.chunkGenerator) {
-            if (this.state === TransferState.CANCELLED || this.ws.readyState !== WebSocket.OPEN) {
-                console.warn('[FileSender] WebSocket closed or cancelled, stopping transfer');
-                this.setState(TransferState.PAUSED);
+
+            // check both sockets
+            if (
+                this.state === TransferState.CANCELLED ||
+                this.ws.readyState !== WebSocket.OPEN ||
+                this.transferWs.readyState !== WebSocket.OPEN
+            ) {
+                console.warn('[FileSender] Connection closed or cancelled, stopping');
+                if (this.state !== TransferState.CANCELLED) {
+                    this.setState(TransferState.PAUSED);
+                }
                 return;
             }
 
-            // Backend Memory Backpressure (Adaptive Pause)
+            // backend memory backpressure
             if (this.isPaused && this.state === TransferState.TRANSFERRING) {
                 if (this.onWaitingChange) this.onWaitingChange(true);
                 while (this.isPaused && this.state === TransferState.TRANSFERRING) {
@@ -145,36 +165,33 @@ export class FileSender {
 
             const checkpointIndex = getCheckpointIndex(chunkIndex, CHECKPOINT_CHUNKS);
 
-            // Peer-to-Peer Disk Persistence Flow Control (max 2 unacknowledged checkpoints in flight)
+            // peer disk persistence flow control — max 2 unacked checkpoints
             if (
                 checkpointIndex > this.lastAckedCheckpoint + 2 &&
                 !this.isPaused &&
                 this.state === TransferState.TRANSFERRING &&
-                this.ws.readyState === WebSocket.OPEN
+                this.transferWs.readyState === WebSocket.OPEN
             ) {
                 if (this.onWaitingChange) this.onWaitingChange(true);
                 while (
                     checkpointIndex > this.lastAckedCheckpoint + 2 &&
                     !this.isPaused &&
                     this.state === TransferState.TRANSFERRING &&
-                    this.ws.readyState === WebSocket.OPEN
+                    this.transferWs.readyState === WebSocket.OPEN
                 ) {
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
                 if (this.onWaitingChange) this.onWaitingChange(false);
             }
 
-            if (checkpointIndex <= this.lastAckedCheckpoint) {
-                //console.log('[FileSender] Skipping already-acked chunk:', chunkIndex);
-                continue;
-            }
-            const binaryFrame = encodeBinaryChunk(checkpointIndex, chunkIndex, data);
+            if (checkpointIndex <= this.lastAckedCheckpoint) continue;
 
-            // Send payload via dedicated transfer relay
+            const binaryFrame = encodeBinaryChunk(checkpointIndex, chunkIndex, data);
             this.transferWs.send(binaryFrame);
 
             this.currentChunk = chunkIndex + 1;
             this.bytesTransferred += data.byteLength;
+
             if (this.onProgress) {
                 this.onProgress({
                     chunkIndex,
@@ -187,59 +204,12 @@ export class FileSender {
                 });
             }
         }
-
-        // All chunks sent
-        //console.log('[FileSender] All chunks sent, waiting for final checkpoint ACK');
     }
 
-
-    async resume() {
-        if (this.state === TransferState.PAUSED) {
-            this.isPaused = false;
-            this.ws.send(JSON.stringify({
-                type: MessageType.FILE_META,
-                payload: {
-                    fileId: this.fileId,
-                    fileName: this.file.name,
-                    fileSize: this.file.size,
-                    chunkSize: CHUNK_SIZE,
-                    checkpointChunks: CHECKPOINT_CHUNKS,
-                    totalChunks: this.totalChunks,
-                    resumed: true
-                }
-            }));
-
-            this.setState(TransferState.WAITING_FOR_ACCEPTANCE);
-            //console.log('[FileSender] Resuming - waiting for acceptance/confirmation...');
-        }
-    }
-
-    async handleBackpressure() {
-        if (this.ws.bufferedAmount > BACKPRESSURE_HIGH_WATERMARK && !this.isBackpressured) {
-            //console.log('[FileSender] Backpressure detected, pausing send...');
-            this.isBackpressured = true;
-        }
-        while (this.isBackpressured) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            if (this.ws.bufferedAmount < BACKPRESSURE_LOW_WATERMARK) {
-                //console.log('[FileSender] Backpressure released, resuming send');
-                this.isBackpressured = false;
-            }
-        }
-    }
-
-    /**
-     * Handle checkpoint acknowledgment from receiver (need improvement)
-     */
     handleCheckpointAck(checkpointIndex) {
-        //console.log('[FileSender] Received checkpoint ACK:', checkpointIndex);
-
         this.lastAckedCheckpoint = checkpointIndex;
         this.saveProgress();
-        if (this.onCheckpointAck) {
-            this.onCheckpointAck(checkpointIndex);
-        }
+        if (this.onCheckpointAck) this.onCheckpointAck(checkpointIndex);
         if (checkpointIndex >= this.totalCheckpoints - 1) {
             this.handleTransferComplete();
         }
@@ -249,14 +219,10 @@ export class FileSender {
         this.setState(TransferState.COMPLETED);
         this.ws.send(JSON.stringify({
             type: MessageType.TRANSFER_COMPLETE,
-            payload: {
-                fileId: this.fileId
-            }
+            payload: { fileId: this.fileId }
         }));
         this.clearProgress();
-
-        //console.log('[FileSender] Transfer complete!');
-
+        this._closeTransferSocket();
         if (this.onComplete) {
             this.onComplete({
                 fileId: this.fileId,
@@ -274,12 +240,8 @@ export class FileSender {
             this.setState(TransferState.PAUSED);
             this.ws.send(JSON.stringify({
                 type: MessageType.TRANSFER_PAUSE,
-                payload: {
-                    fileId: this.fileId
-                }
+                payload: { fileId: this.fileId }
             }));
-
-            //console.log('[FileSender] Transfer paused');
         }
     }
 
@@ -287,81 +249,56 @@ export class FileSender {
         if (this.state === TransferState.PAUSED) {
             this.isPaused = false;
             this.setState(TransferState.TRANSFERRING);
-
-            this.ws.send(JSON.stringify({
-                type: MessageType.FILE_META,
-                payload: {
-                    fileId: this.fileId,
-                    fileName: this.file.name,
-                    fileSize: this.file.size,
-                    chunkSize: CHUNK_SIZE,
-                    checkpointChunks: CHECKPOINT_CHUNKS,
-                    totalChunks: this.totalChunks,
-                    resumed: true
-                }
-            }));
-
-            //console.log('[FileSender] Transfer resumed from chunk:', this.currentChunk);
-            await this.sendChunks(this.currentChunk);
+            this.sendFileMeta(true);
+            this.setState(TransferState.WAITING_FOR_ACCEPTANCE);
         }
     }
 
     cancel() {
         this.isPaused = true;
         this.setState(TransferState.CANCELLED);
-
         this.ws.send(JSON.stringify({
             type: MessageType.TRANSFER_CANCEL,
-            payload: {
-                fileId: this.fileId
-            }
+            payload: { fileId: this.fileId }
         }));
-
         this.clearProgress();
-        //console.log('[FileSender] Transfer cancelled');
+        this._closeTransferSocket();
+    }
+
+    _closeTransferSocket() {
+        if (this.transferWs && this.transferWs.readyState === WebSocket.OPEN) {
+            this.transferWs.close();
+        }
+        this.transferWs = null;
     }
 
     calculateSpeed() {
         if (!this.startTime) return 0;
-
         const elapsed = (Date.now() - this.startTime) / 1000;
         return elapsed > 0 ? this.bytesTransferred / elapsed : 0;
     }
 
     saveProgress() {
-        const key = `file_sender_${this.fileId}`;
-        const progress = {
+        localStorage.setItem(`file_sender_${this.fileId}`, JSON.stringify({
             fileId: this.fileId,
             fileName: this.file.name,
-            lastCheckpoint: this.lastAckedCheckpoint,
+            lastAckedCheckpoint: this.lastAckedCheckpoint,
             timestamp: Date.now()
-        };
-
-        localStorage.setItem(key, JSON.stringify(progress));
+        }));
     }
 
     static loadProgress(fileId) {
-        const key = `file_sender_${fileId}`;
-        const data = localStorage.getItem(key);
-
-        if (data) {
-            return JSON.parse(data);
-        }
-
-        return null;
+        const data = localStorage.getItem(`file_sender_${fileId}`);
+        return data ? JSON.parse(data) : null;
     }
 
     clearProgress() {
-        const key = `file_sender_${this.fileId}`;
-        localStorage.removeItem(key);
+        localStorage.removeItem(`file_sender_${this.fileId}`);
     }
 
     setState(newState) {
         const oldState = this.state;
         this.state = newState;
-
-        if (this.onStateChange) {
-            this.onStateChange(newState, oldState);
-        }
+        if (this.onStateChange) this.onStateChange(newState, oldState);
     }
 }

@@ -7,6 +7,8 @@ import {
     TransferState
 } from './constants.js';
 
+const WS_BASE = `${import.meta.env.VITE_API_SOCKET}/ws`;
+
 export class FileReceiver {
     constructor(ws) {
         this.ws = ws;
@@ -83,27 +85,31 @@ export class FileReceiver {
         }
 
         if (!this.transferWs) {
-            const wsBase = this.ws.url.split('/ws/')[0] + '/ws';
-            const receiverUrl = `${wsBase}/receiver/${this.fileId}`;
-            this.transferWs = new WebSocket(receiverUrl);
-            this.transferWs.binaryType = 'arraybuffer';
-
-            this.transferWs.onmessage = async (event) => {
-                if (event.data instanceof ArrayBuffer) {
-                    await this.handleBinaryChunk(event.data);
-                } else if (event.data instanceof Blob) {
-                    const buf = await event.data.arrayBuffer();
-                    await this.handleBinaryChunk(buf);
-                }
-            };
-
-            this.transferWs.onerror = (error) => {
-                console.error('[FileReceiver] transferWs error', error);
-            };
-
             await new Promise((resolve, reject) => {
-                this.transferWs.onopen = resolve;
-                this.transferWs.onerror = reject;
+                this.transferWs = new WebSocket(`${WS_BASE}/receiver/${this.fileId}`);
+                this.transferWs.binaryType = 'arraybuffer';
+
+                this.transferWs.onopen = () => resolve();
+
+                this.transferWs.onerror = (error) => {
+                    console.error('[FileReceiver] transferWs error', error);
+                    if (this.onError) this.onError({ type: 'transfer_ws_error', message: 'Receiver connection failed' });
+                    reject(error);
+                };
+
+                this.transferWs.onclose = (e) => {
+                    if (this.state === TransferState.TRANSFERRING) {
+                        console.warn('[FileReceiver] transferWs closed unexpectedly', e.code);
+                        if (this.onError) this.onError({ type: 'transfer_ws_closed', message: 'Receiver connection dropped' });
+                    }
+                };
+
+                this.transferWs.onmessage = async (event) => {
+                    const buf = event.data instanceof Blob
+                        ? await event.data.arrayBuffer()
+                        : event.data;
+                    await this.handleBinaryChunk(buf);
+                };
             });
         }
 
@@ -342,6 +348,13 @@ export class FileReceiver {
         //console.log('[FileReceiver] Sent resume-info:', info);
     }
 
+    _closeTransferSocket() {
+        if (this.transferWs && this.transferWs.readyState === WebSocket.OPEN) {
+            this.transferWs.close();
+        }
+        this.transferWs = null;
+    }
+
     async finalize() {
         try {
             if (this.writer) {
@@ -350,6 +363,7 @@ export class FileReceiver {
             }
             await clearCheckpoint(this.fileId);
 
+            this._closeTransferSocket();
             this.setState(TransferState.COMPLETED);
 
             //console.log('[FileReceiver] Transfer complete!');
@@ -456,9 +470,8 @@ export class FileReceiver {
 
             await clearCheckpoint(this.fileId);
 
+            this._closeTransferSocket();
             this.setState(TransferState.CANCELLED);
-
-            //console.log('[FileReceiver] Transfer cancelled');
 
         } catch (error) {
             console.error('[FileReceiver] Error cancelling transfer:', error);

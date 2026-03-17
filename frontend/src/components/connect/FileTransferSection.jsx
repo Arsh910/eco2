@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Pause, Play, XCircle, Upload, Files, Lock, Unlock, Check, Info } from "lucide-react";
+import { X, Pause, Play, XCircle, Upload, Files, Lock, Unlock, Check, Info, Send, ChevronDown, User } from "lucide-react";
 import { FileSender } from "../../utils/fileTransfer/FileSender.js";
 import { FileReceiver } from "../../utils/fileTransfer/FileReceiver.js";
 import { generateFileId, formatBytes, formatSpeed, formatDuration, calculateETA, downloadFromOPFS } from "../../utils/fileTransfer/helpers.js";
@@ -8,19 +8,23 @@ import { encryptFile, decryptFile } from "../../utils/crypto/encryption.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import "../../pages/eco2apps/connect/DataTransfer.css";
 
-export default function FileTransferSection({ wsRef, setFileTransferCallbacks }) {
+export default function FileTransferSection({ wsRef, setFileTransferCallbacks, connectedUsers = [] }) {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [transfers, setTransfers] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
     const [isEncryptionEnabled, setIsEncryptionEnabled] = useState(false);
     const [encryptionPassword, setEncryptionPassword] = useState("");
+    const [showRecipientPicker, setShowRecipientPicker] = useState(false);
     const { user, guestName } = useAuth();
     const currentUsername = user?.username || guestName || 'Anonymous';
+
+    const otherUsers = connectedUsers.filter(u => u !== currentUsername);
 
     const activeSendersRef = useRef(new Map());
     const activeReceiverRef = useRef(null);
     const fileInputRef = useRef(null);
     const dragCounter = useRef(0);
+    const recipientPickerRef = useRef(null);
 
     const setupReceiver = async (meta) => {
         const receiver = new FileReceiver(wsRef.current);
@@ -125,13 +129,12 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
         if (!setFileTransferCallbacks) return;
 
         setFileTransferCallbacks({
-            onBinaryChunk: async (arrayBuffer) => {
-                if (activeReceiverRef.current) {
-                    await activeReceiverRef.current.handleBinaryChunk(arrayBuffer);
-                }
-            },
             onFileMeta: async (meta) => {
-                //console.log('[FileTransferSection] Received file-meta:', meta);
+                // Only show transfer if it's targeted at us (or has no target — legacy)
+                if (meta.targetUser && meta.targetUser !== currentUsername) {
+                    return;
+                }
+
                 setTransfers(prev => {
                     const existingTransfer = prev.find(t => t.fileId === meta.fileId);
 
@@ -301,6 +304,17 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
         };
     }, []);
 
+    useEffect(() => {
+        if (!showRecipientPicker) return;
+        const handleClickOutside = (e) => {
+            if (recipientPickerRef.current && !recipientPickerRef.current.contains(e.target)) {
+                setShowRecipientPicker(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showRecipientPicker]);
+
     const handleFileInput = (e) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
@@ -317,13 +331,15 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
         });
     };
 
-    const handleSendFiles = async () => {
+    const handleSendFiles = async (targetUser) => {
         if (selectedFiles.length === 0 || !wsRef.current) return;
 
         if (isEncryptionEnabled && !encryptionPassword) {
             alert("Please enter a password for encryption.");
             return;
         }
+
+        setShowRecipientPicker(false);
 
         for (const fileData of selectedFiles) {
             let fileToSend = fileData.file;
@@ -342,7 +358,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
             }
 
             const fileId = await generateFileId(fileToSend);
-            const sender = new FileSender(fileToSend, fileId, wsRef.current, currentUsername);
+            const sender = new FileSender(fileToSend, fileId, wsRef.current, currentUsername, targetUser);
 
             activeSendersRef.current.set(fileId, sender);
             const transfer = {
@@ -361,7 +377,8 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                 currentCheckpoint: 0,
                 totalCheckpoints: sender.totalCheckpoints,
                 url: fileData.preview || "#",
-                isEncrypted: isEncryptionEnabled
+                isEncrypted: isEncryptionEnabled,
+                targetUser
             };
 
             setTransfers((prev) => [...prev, transfer]);
@@ -655,13 +672,47 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                         <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                             Selected Files ({selectedFiles.length})
                         </h3>
-                        <button
-                            onClick={handleSendFiles}
-                            className="btn-primary text-sm"
-                            disabled={!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN}
-                        >
-                            {isEncryptionEnabled ? 'Encrypt & Send' : 'Send All'}
-                        </button>
+                        <div className="relative" ref={recipientPickerRef}>
+                            {otherUsers.length === 1 ? (
+                                <button
+                                    onClick={() => handleSendFiles(otherUsers[0])}
+                                    className="btn-primary text-sm flex items-center gap-2"
+                                    disabled={!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN}
+                                >
+                                    <Send className="w-3.5 h-3.5" />
+                                    {isEncryptionEnabled ? 'Encrypt & Send' : `Send to ${otherUsers[0]}`}
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setShowRecipientPicker(!showRecipientPicker)}
+                                        className="btn-primary text-sm flex items-center gap-2"
+                                        disabled={!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN || otherUsers.length === 0}
+                                    >
+                                        <Send className="w-3.5 h-3.5" />
+                                        {otherUsers.length === 0 ? 'No users online' : (isEncryptionEnabled ? 'Encrypt & Send' : 'Send to...')}
+                                        {otherUsers.length > 0 && <ChevronDown className="w-3.5 h-3.5" />}
+                                    </button>
+                                    {showRecipientPicker && otherUsers.length > 0 && (
+                                        <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
+                                            <div className="px-3 py-2 text-xs font-medium text-[var(--text-secondary)] border-b border-slate-200 dark:border-slate-700">
+                                                Send to
+                                            </div>
+                                            {otherUsers.map((u) => (
+                                                <button
+                                                    key={u}
+                                                    onClick={() => handleSendFiles(u)}
+                                                    className="w-full px-3 py-2.5 text-sm text-left flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-[var(--text-primary)]"
+                                                >
+                                                    <User className="w-4 h-4 text-[var(--text-secondary)]" />
+                                                    {u}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar pr-2">
@@ -750,7 +801,7 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                                     transfer.state === TransferState.WAITING_FOR_ACCEPTANCE
                                                         ? '(Waiting to accept)'
                                                         : (transfer.direction === 'sent'
-                                                            ? 'Sending'
+                                                            ? `Sending to ${transfer.targetUser || 'peer'}`
                                                             : `Receiving from ${transfer.senderUsername || 'Unknown'}`
                                                         )
                                                 }
@@ -777,20 +828,6 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks })
                                                 </>
                                             )}
 
-                                            {transfer.direction === 'sent' &&
-                                                (transfer.state === TransferState.TRANSFERRING || transfer.state === TransferState.PAUSED) && (
-                                                    <button
-                                                        onClick={() => handlePauseResume(transfer.id)}
-                                                        className="p-1.5 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors"
-                                                        title={transfer.state === TransferState.TRANSFERRING && !transfer.isWaitingForReceiver ? 'Pause' : 'Resume'}
-                                                    >
-                                                        {transfer.state === TransferState.TRANSFERRING && !transfer.isWaitingForReceiver ? (
-                                                            <Pause className="w-4 h-4 text-[var(--text-secondary)]" />
-                                                        ) : (
-                                                            <Play className="w-4 h-4 text-[var(--text-secondary)]" />
-                                                        )}
-                                                    </button>
-                                                )}
 
                                             {transfer.direction === 'received' && transfer.state === TransferState.COMPLETED && (
                                                 <button

@@ -218,16 +218,31 @@ const EcoMeets = () => {
     useEffect(() => {
         (async () => {
             try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    setStatus("Secure Context Required");
+                    return;
+                }
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: true, audio: true,
                 });
                 localStream = stream;
                 if (localRef.current) {
                     localRef.current.srcObject = stream;
-                    localRef.current.play().catch(() => { });
+                    localRef.current.play().catch((err) => {
+                        console.error("Local video play error:", err);
+                    });
                 }
-            } catch {
-                setStatus("Camera Error");
+            } catch (err) {
+                console.error("getUserMedia error:", err);
+                if (err.name === 'NotAllowedError') {
+                    setStatus("Permission Denied");
+                } else if (err.name === 'NotFoundError') {
+                    setStatus("Device Not Found");
+                } else if (err.name === 'NotReadableError') {
+                    setStatus("Camera Busy");
+                } else {
+                    setStatus(`Camera Error: ${err.name}`);
+                }
                 return;
             }
 

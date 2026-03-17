@@ -23,11 +23,13 @@ class TransferSession:
         self.update_activity()
 
     async def cleanup(self) -> None:
+        self.buffer.finish()
+
         if self.sender_task and not self.sender_task.done():
             self.sender_task.cancel()
         if self.receiver_task and not self.receiver_task.done():
             self.receiver_task.cancel()
-            
+
         if self.sender_ws:
             try:
                 await self.sender_ws.close()

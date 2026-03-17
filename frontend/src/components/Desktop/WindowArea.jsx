@@ -14,7 +14,7 @@ const AppComponents = {
     ecostore: EcoStore,
 };
 
-const WindowArea = ({ app, onClose }) => {
+const WindowArea = ({ app, onClose, onLaunchApp }) => {
     const nodeRef = useRef(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
@@ -89,6 +89,7 @@ const WindowArea = ({ app, onClose }) => {
                 <div className="flex-grow overflow-auto relative" style={{ cursor: 'default' }}>
                     {AppComponent ? (
                         <AppComponent
+                            onLaunchApp={onLaunchApp}
                             onProcessStart={() => setIsProcessing(true)}
                             onProcessEnd={() => setIsProcessing(false)}
                         />

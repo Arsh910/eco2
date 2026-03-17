@@ -19,35 +19,30 @@ class SenderHandler:
                 data=data,
                 timestamp=time.time()
             )
-            
-            # Backpressure loop: wait if buffer is full
-            while not self.buffer.add_chunk(chunk):
-                if not self.paused:
-                    await self.send_pause_signal()
-                    self.paused = True
-                    self.buffer.sender_paused = True
-                    
-                await asyncio.sleep(0.1)
-                
-                # Check if we can resume
-                if self.buffer.get_buffer_pressure() < 0.3:
-                    await self.send_resume_signal()
-                    self.paused = False
-                    self.buffer.sender_paused = False
-                    continue # Loop continues to try adding chunk again
-                    
+
+            # Proactive pause signal if pressure is high before blocking
+            if not self.paused and self.buffer.should_sender_pause():
+                await self.send_pause_signal()
+                self.paused = True
+                self.buffer.sender_paused = True
+
+            # add_chunk now blocks if buffer is full — no polling loop needed
+            success = await self.buffer.add_chunk(chunk)
+            if not success:
+                return
+
+            # Resume sender if we were paused and pressure dropped
+            if self.paused and self.buffer.get_buffer_pressure() < 0.3:
+                await self.send_resume_signal()
+                self.paused = False
+                self.buffer.sender_paused = False
+
             # Chunk accepted
             await self.send_ack(self.seq)
             self.seq += 1
             self.chunks_sent += 1
             self.total_bytes_sent += len(data)
 
-            # Proactive pause signal if pressure is high
-            if not self.paused and self.buffer.should_sender_pause():
-                await self.send_pause_signal()
-                self.paused = True
-                self.buffer.sender_paused = True
-                
         except Exception as e:
             print(f"[SenderHandler] Error: {e}")
             if hasattr(self.websocket, 'session'):

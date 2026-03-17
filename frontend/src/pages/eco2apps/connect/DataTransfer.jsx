@@ -287,6 +287,7 @@ export default function DataTransfer() {
                     <FileTransferSection
                         wsRef={wsRef}
                         setFileTransferCallbacks={setFileTransferCallbacks}
+                        connectedUsers={connectedUsers}
                     />
                 </div>
             </div>

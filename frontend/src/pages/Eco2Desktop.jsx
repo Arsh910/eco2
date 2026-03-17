@@ -50,7 +50,7 @@ const Home = () => {
                 </div>
 
                 <div className="flex-grow relative pointer-events-auto">
-                    <WindowArea app={currentApp} onClose={handleCloseApp} />
+                    <WindowArea app={currentApp} onClose={handleCloseApp} onLaunchApp={handleLaunchApp} />
                 </div>
 
                 <div className="pointer-events-auto">
