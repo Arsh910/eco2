@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "overrides": {
+    "react-joyride": {
+      "react": "^19.1.1",
+      "react-dom": "^19.1.1"
+    },
     "react-floater": {
       "react": "^19.1.1",
       "react-dom": "^19.1.1"
