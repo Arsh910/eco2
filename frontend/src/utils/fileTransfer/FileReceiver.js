@@ -6,6 +6,7 @@ import {
     MessageType,
     TransferState
 } from './constants.js';
+import { SpeedCalculator } from './helpers.js';
 
 const WS_BASE = `${import.meta.env.VITE_API_SOCKET}/ws`;
 
@@ -40,6 +41,7 @@ export class FileReceiver {
 
         // Buffering for race conditions (small files)
         this.chunkBuffer = [];
+        this.speedCalc = new SpeedCalculator(5000);
     }
 
     /**
@@ -236,7 +238,7 @@ export class FileReceiver {
                         checkpointIndex,
                         totalCheckpoints: this.totalCheckpoints,
                         percentage: (this.bytesReceived / this.fileSize) * 100,
-                        speed: this.calculateSpeed()
+                        speed: this.speedCalc.getSpeed()
                     });
                 }
                 await this.checkCheckpointComplete(checkpointIndex);
@@ -449,12 +451,6 @@ export class FileReceiver {
         if (this.onStateChange) {
             this.onStateChange(newState, oldState);
         }
-    }
-    calculateSpeed() {
-        if (!this.startTime) return 0;
-
-        const elapsed = (Date.now() - this.startTime) / 1000;
-        return elapsed > 0 ? this.bytesReceived / elapsed : 0;
     }
 
     async cancel() {

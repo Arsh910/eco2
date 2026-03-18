@@ -8,6 +8,8 @@ import {
     BACKPRESSURE_LOW_WATERMARK
 } from './constants.js';
 
+import { SpeedCalculator } from './helpers.js';
+
 const WS_BASE = `${import.meta.env.VITE_API_SOCKET}/ws`;
 
 export class FileSender {
@@ -35,6 +37,7 @@ export class FileSender {
         this.onStateChange = null;
         this.onWaitingChange = null;
         this.chunkGenerator = null;
+        this.speedCalc = new SpeedCalculator(5000);
     }
 
     sendFileMeta(resumed = false) {
@@ -200,7 +203,7 @@ export class FileSender {
                     totalBytes: this.file.size,
                     checkpointIndex,
                     totalCheckpoints: this.totalCheckpoints,
-                    speed: this.calculateSpeed()
+                    speed: this.speedCalc.getSpeed()
                 });
             }
         }
@@ -270,12 +273,6 @@ export class FileSender {
             this.transferWs.close();
         }
         this.transferWs = null;
-    }
-
-    calculateSpeed() {
-        if (!this.startTime) return 0;
-        const elapsed = (Date.now() - this.startTime) / 1000;
-        return elapsed > 0 ? this.bytesTransferred / elapsed : 0;
     }
 
     saveProgress() {

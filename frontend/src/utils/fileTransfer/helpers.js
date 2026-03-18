@@ -5,6 +5,33 @@ export function generateUUID() {
         return v.toString(16);
     });
 }
+export class SpeedCalculator {
+    constructor(windowSizeMs = 5000) {
+        this.windowSizeMs = windowSizeMs;
+        this.samples = [];
+    }
+
+    addSample(bytes) {
+        const now = Date.now();
+        this.samples.push({ timestamp: now, bytes });
+        const cutoff = now - this.windowSizeMs;
+        this.samples = this.samples.filter(s => s.timestamp >= cutoff);
+    }
+
+    getSpeed() {
+        if (this.samples.length < 2) return 0;
+        const oldest = this.samples[0];
+        const newest = this.samples[this.samples.length - 1];
+        const elapsedSec = (newest.timestamp - oldest.timestamp) / 1000;
+        if (elapsedSec <= 0) return 0;
+        const totalBytes = this.samples.slice(1).reduce((sum, s) => sum + s.bytes, 0);
+        return totalBytes / elapsedSec;
+    }
+
+    reset() {
+        this.samples = [];
+    }
+}
 
 export async function generateFileId(file) {
     const fileData = `${file.name}-${file.size}-${file.lastModified}`;
