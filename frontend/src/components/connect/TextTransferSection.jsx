@@ -83,7 +83,7 @@ export default function TextTransferSection({ messages = [], sendText }) {
                                     <div
                                         className={`
                                             max-w-[75%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm
-                                            transition-all duration-300 cursor-pointer border
+                                            transition-all duration-300 border
                                             ${isReceived
                                                 ? 'bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-primary)] backdrop-blur-sm'
                                                 : 'bg-[var(--accent-primary)] border-transparent text-white shadow-md'
@@ -94,7 +94,7 @@ export default function TextTransferSection({ messages = [], sendText }) {
                                             }
                                         `}
                                     >
-                                        <p className="text-sm sm:text-base break-words whitespace-pre-wrap">
+                                        <p className="text-sm sm:text-base break-words whitespace-pre-wrap select-text cursor-text">
                                             {content}
                                         </p>
                                     </div>
