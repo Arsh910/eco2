@@ -53,7 +53,7 @@ const PromoLandingPage = () => {
                     className="w-48 h-48 object-contain drop-shadow-[0_0_25px_rgba(59,130,246,0.8)] filter brightness-110 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 md:-mt-8"
                 />
 
-                <AdSlot
+                {/* <AdSlot
                     className="hidden xl:flex top-1/2 left-1/2"
                     w={300} h={600} x={-outerDistance} y={0}
                 />
@@ -86,7 +86,7 @@ const PromoLandingPage = () => {
                         backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
                         boxShadow: '0 0 50px rgba(0,0,0,0.8)'
                     }}
-                />
+                /> */}
 
             </div>
         </div>
