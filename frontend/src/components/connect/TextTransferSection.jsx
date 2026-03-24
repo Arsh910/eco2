@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Copy, Check } from "lucide-react";
 import "../../pages/eco2apps/connect/DataTransfer.css";
 
 export default function TextTransferSection({ messages = [], sendText }) {
     const [message, setMessage] = useState("");
     const [sending, setSending] = useState(false);
     const [spotlightId, setSpotlightId] = useState(null);
+    const [copiedId, setCopiedId] = useState(null);
     const messagesEndRef = useRef(null);
     const chatContainerRef = useRef(null);
 
@@ -36,6 +37,12 @@ export default function TextTransferSection({ messages = [], sendText }) {
     const handleSpotlight = (msgId) => {
         setSpotlightId(msgId);
         setTimeout(() => setSpotlightId(null), 3000);
+    };
+
+    const handleCopy = async (text, msgId) => {
+        await navigator.clipboard.writeText(text);
+        setCopiedId(msgId);
+        setTimeout(() => setCopiedId(null), 1500);
     };
 
     const charCount = message.length;
@@ -80,23 +87,41 @@ export default function TextTransferSection({ messages = [], sendText }) {
                                         {senderName}
                                     </span>
 
-                                    <div
-                                        className={`
-                                            max-w-[75%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm
-                                            transition-all duration-300 border
-                                            ${isReceived
-                                                ? 'bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-primary)] backdrop-blur-sm'
-                                                : 'bg-[var(--accent-primary)] border-transparent text-white shadow-md'
+                                    <div className="group relative">
+                                        <div
+                                            className={`
+                                                min-w-[80px] max-w-[75%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm
+                                                transition-all duration-300 border
+                                                ${isReceived
+                                                    ? 'bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-primary)] backdrop-blur-sm'
+                                                    : 'bg-[var(--accent-primary)] border-transparent text-white shadow-md'
+                                                }
+                                                ${isSpotlighted
+                                                    ? 'ring-4 ring-yellow-400 dark:ring-yellow-500 scale-105 shadow-2xl'
+                                                    : 'hover:shadow-md'
+                                                }
+                                            `}
+                                        >
+                                            <p className={`text-sm sm:text-base break-words whitespace-pre-wrap select-text cursor-text ${isReceived ? 'msg-received-text' : 'msg-sent-text'}`}>
+                                                {content}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleCopy(content, msgId)}
+                                            className={`
+                                                absolute -bottom-2 ${isReceived ? 'right-0' : 'left-0'}
+                                                transition-opacity duration-200
+                                                p-1 rounded-md bg-[var(--bg-secondary)] border border-[var(--border-subtle)]
+                                                text-[var(--text-secondary)] hover:text-[var(--text-primary)]
+                                                shadow-sm hover:shadow-md
+                                            `}
+                                            title="Copy message"
+                                        >
+                                            {copiedId === msgId
+                                                ? <Check className="w-3.5 h-3.5 text-green-500" />
+                                                : <Copy className="w-3.5 h-3.5" />
                                             }
-                                            ${isSpotlighted
-                                                ? 'ring-4 ring-yellow-400 dark:ring-yellow-500 scale-105 shadow-2xl'
-                                                : 'hover:shadow-md'
-                                            }
-                                        `}
-                                    >
-                                        <p className="text-sm sm:text-base break-words whitespace-pre-wrap select-text cursor-text">
-                                            {content}
-                                        </p>
+                                        </button>
                                     </div>
                                 </div>
                             );

@@ -327,6 +327,16 @@
     }
 }
 
+.msg-sent-text::selection {
+    background: rgba(255, 255, 255, 0.35);
+    color: #fff;
+}
+
+.msg-received-text::selection {
+    background: var(--selection-bg);
+    color: var(--selection-text);
+}
+
 .spotlight-message {
     animation: spotlight 0.6s ease-in-out;
 }
