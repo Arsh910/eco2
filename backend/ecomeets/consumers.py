@@ -29,15 +29,20 @@ class EcoMeetsConsumer(WebsocketConsumer):
 
     # Disconnect 
     def disconnect(self, code):
-        print(f"[EcoMeets] Disconnect called: user_id={self.user_id}, channel={self.channel_name}")
-        
+        print(f"[EcoMeets] Disconnect called: user_id={self.user_id}")
+    
         if self.user_id is None:
             return
     
+        # Wrap this in try/except — channel may already be dead
         if self.partner_channel:
-            self._send_to_channel(self.partner_channel, {
-                "typeof": "partner_disconnected",
-            })
+            try:
+                self._send_to_channel(self.partner_channel, {
+                    "typeof": "partner_disconnected",
+                })
+            except Exception as e:
+                print(f"[EcoMeets] Could not notify partner: {e}")
+            
             if self.partner_id in self._active_pairs:
                 del self._active_pairs[self.partner_id]
     
@@ -49,14 +54,19 @@ class EcoMeetsConsumer(WebsocketConsumer):
             if entry[0] != self.user_id
         ]
     
-        # ← Add these debug prints
-        print(f"[EcoMeets] Before discard: {self._online_users}")
+        # These MUST always run — put them in finally-style block
         self._online_users.discard(self.user_id)
         self._user_channels.pop(self.user_id, None)
-        print(f"[EcoMeets] After discard: {self._online_users}")
+        
+        print(f"[EcoMeets] Online count after cleanup: {len(self._online_users)}")
     
-        self._broadcast_online_count()
+        # Wrap broadcast too — it iterates dead channels
+        try:
+            self._broadcast_online_count()
+        except Exception as e:
+            print(f"[EcoMeets] Broadcast failed: {e}")
 
+    
     # Receive
     def receive(self, text_data=None, bytes_data=None):
         if not text_data:
@@ -258,8 +268,9 @@ class EcoMeetsConsumer(WebsocketConsumer):
         self.send(text_data=json.dumps(data))
 
     def _broadcast_online_count(self):
-        """Send online count to all connected users via their channels."""
         count = len(self._online_users)
+        dead_users = []
+        
         for uid, ch in list(self._user_channels.items()):
             try:
                 async_to_sync(self.channel_layer.send)(ch, {
@@ -267,4 +278,11 @@ class EcoMeetsConsumer(WebsocketConsumer):
                     "data": {"typeof": "online_count", "count": count},
                 })
             except Exception:
-                pass
+                # Channel is dead — mark for removal
+                dead_users.append(uid)
+        
+        # Clean up dead channels discovered during broadcast
+        for uid in dead_users:
+            print(f"[EcoMeets] Removing dead channel for user {uid}")
+            self._online_users.discard(uid)
+            self._user_channels.pop(uid, None)
