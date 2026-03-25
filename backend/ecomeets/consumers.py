@@ -16,7 +16,6 @@ class EcoMeetsConsumer(WebsocketConsumer):
     _online_users = set()      # set of user_ids
 
     # Connection lifecycle
-
     def connect(self):
         self.accept()
         self.user = None
@@ -27,33 +26,37 @@ class EcoMeetsConsumer(WebsocketConsumer):
         self.partner_channel = None
         self.role = None
 
+    # Disconnect 
     def disconnect(self, code):
+        print(f"[EcoMeets] Disconnect called: user_id={self.user_id}, channel={self.channel_name}")
+        
         if self.user_id is None:
             return
-
+    
         if self.partner_channel:
             self._send_to_channel(self.partner_channel, {
                 "typeof": "partner_disconnected",
             })
             if self.partner_id in self._active_pairs:
                 del self._active_pairs[self.partner_id]
-
+    
         if self.user_id in self._active_pairs:
             del self._active_pairs[self.user_id]
-
+    
         self._waiting_queue[:] = [
             entry for entry in self._waiting_queue
             if entry[0] != self.user_id
         ]
-
+    
+        # ← Add these debug prints
+        print(f"[EcoMeets] Before discard: {self._online_users}")
         self._online_users.discard(self.user_id)
         self._user_channels.pop(self.user_id, None)
-
+        print(f"[EcoMeets] After discard: {self._online_users}")
+    
         self._broadcast_online_count()
-        print(f"[EcoMeets] Disconnected: {self.user_name} (id={self.user_id})")
 
     # Receive
-
     def receive(self, text_data=None, bytes_data=None):
         if not text_data:
             return
@@ -213,7 +216,7 @@ class EcoMeetsConsumer(WebsocketConsumer):
             return False
 
     def _authenticate_guest(self, name):
-        self.user_id = random.randint(10000, 99999)
+        self.user_id = str(uuid.uuid4())
         self.user_name = f"Guest_{name}_{self.user_id}"
 
     def _finish_auth(self):
