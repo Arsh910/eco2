@@ -130,11 +130,6 @@ export default function FileTransferSection({ wsRef, setFileTransferCallbacks, c
 
         setFileTransferCallbacks({
             onFileMeta: async (meta) => {
-                // Only show transfer if it's targeted at us (or has no target — legacy)
-                if (meta.targetUser && meta.targetUser !== currentUsername) {
-                    return;
-                }
-
                 setTransfers(prev => {
                     const existingTransfer = prev.find(t => t.fileId === meta.fileId);
 
